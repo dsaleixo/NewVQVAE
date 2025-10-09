@@ -4,7 +4,7 @@ import wandb
 os.environ["WANDB_API_KEY"] = "e6dd69e5ba37b74ef8d3ef0fa9dd28a33e4eeb6e"
 from readDatas import ReadDatas
 
-import cv2
+
 import tempfile
 import imageio
 

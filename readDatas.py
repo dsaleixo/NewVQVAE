@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from pathlib import Path
-import scipy.sparse
+
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 
