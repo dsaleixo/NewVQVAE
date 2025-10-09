@@ -272,7 +272,7 @@ def teste2():
     model = Model1().to(device)
     trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
 
-    num_epochs = 10000
+    num_epochs = 100000000000
     
 
     optimizer = optim.Adam(
@@ -304,11 +304,11 @@ def teste2():
         
 
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)  
-        '''
+      
         if epoch%50==0:
             Viewer.saveTensorAsImg(x_rec.squeeze(),"recontructionImg","trainImagens")
             Viewer.saveTensorAsGIF(x_rec.squeeze(),"recontructioVideo","trainVideo")
-        '''
+       
         # --- Loss ---
         recon_loss = F.mse_loss(x_rec, x)
         loss = recon_loss 
