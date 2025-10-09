@@ -260,7 +260,7 @@ def teste2():
 
     wandb.init(
     project="VQVAE",
-    name = "X1",
+    name = "X1_2ee",
     config={
      "test": 1,
 
