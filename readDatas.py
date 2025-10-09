@@ -36,10 +36,11 @@ class ReadDatas:
     def convertDatasRawforCompress():
         size=144
         data = [ ]
-        folderInput = './datas3/'
+        folderInput = './datas3Original/'
         folderOut = './data/'
         folder_path = Path(folderInput)
         files =  [f.name for f in folder_path.iterdir() if f.is_file()]
+        #files =  ['resultado.npy']
         print(len(files))
         cont=0
         for arq in files:
@@ -50,8 +51,10 @@ class ReadDatas:
             shape = loaded_data.shape
             #print(shape,len(dados))
             aux = [ loaded_data]
+            C, H, W = loaded_data.shape[1:]
             for _ in range(size-shape[0]):
-                aux.append( np.expand_dims(loaded_data[-1].copy(), axis=0))
+                black_frame = np.zeros((1, C, H, W), dtype=loaded_data.dtype)
+                aux.append(black_frame)
 
             loaded_data2  = np.concatenate(aux, axis=0)
             loaded_data2 = loaded_data2[0:size,:,:,:]
@@ -61,13 +64,16 @@ class ReadDatas:
             np.savez_compressed(folderOut+arq[:-3]+"npz", indices=indices, values=values, shape=img.shape)
 
 
-    def readData(folder):
+    def readData(folder,files=None):
         folder_path = Path(folder)
-        files =  [f.name for f in folder_path.iterdir() if f.is_file()]
-        print(len(files))
+        if files ==None:
+            files =  [f.name for f in folder_path.iterdir() if f.is_file()]
+   
         cont=0
         imgs = []
         for arq in files:
+            if cont>100:
+                break
             data = np.load(folder+arq)
             indices = data["indices"]
             values = data["values"]
@@ -76,12 +82,15 @@ class ReadDatas:
             flat = np.zeros((np.prod(shape[:2]), 6), dtype=values.dtype)
             flat[indices] = values
             img = flat.reshape(shape)
-            imgs.append(img)
+            imgs.append(torch.tensor(img,device="cpu").permute(2,0,1))
+            cont+=1
         return imgs
      
 if __name__ == "__main__":
-
-    data = ReadDatas.readData('./data/')
-    print(len(data))
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #data = ReadDatas.readData('./data/',device)
+   #print(len(data),data[0].shape)
+   ReadDatas.convertDatasRawforCompress()
+   pass
   
       

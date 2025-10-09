@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/home/david/Área de trabalho/projetos/NewVQVAE/Viewer.py", line 160, in <module>
+    Viewer.saveTensorAsGIF(video0,"control","trainVideo")
+  File "/home/david/Área de trabalho/projetos/NewVQVAE/Viewer.py", line 137, in saveTensorAsGIF
+    imageio.mimsave(gif_path, frames, fps=fps)
+  File "/home/david/miniconda3/envs/VQVAE/lib/python3.10/site-packages/imageio/v2.py", line 495, in mimwrite
+    return file.write(ims, is_batch=True, **kwargs)
+  File "/home/david/miniconda3/envs/VQVAE/lib/python3.10/site-packages/imageio/plugins/pillow.py", line 417, in write
+    ndimage = np.stack(ndimage, axis=0)
+  File "/home/david/miniconda3/envs/VQVAE/lib/python3.10/site-packages/numpy/_core/shape_base.py", line 444, in stack
+    raise ValueError('need at least one array to stack')
+ValueError: need at least one array to stack
+Traceback (most recent call last):
+  File "/home/david/Área de trabalho/projetos/NewVQVAE/Viewer.py", line 160, in <module>
+    Viewer.saveTensorAsGIF(video0,"control","trainVideo")
+  File "/home/david/Área de trabalho/projetos/NewVQVAE/Viewer.py", line 137, in saveTensorAsGIF
+    imageio.mimsave(gif_path, frames, fps=fps)
+  File "/home/david/miniconda3/envs/VQVAE/lib/python3.10/site-packages/imageio/v2.py", line 495, in mimwrite
+    return file.write(ims, is_batch=True, **kwargs)
+  File "/home/david/miniconda3/envs/VQVAE/lib/python3.10/site-packages/imageio/plugins/pillow.py", line 417, in write
+    ndimage = np.stack(ndimage, axis=0)
+  File "/home/david/miniconda3/envs/VQVAE/lib/python3.10/site-packages/numpy/_core/shape_base.py", line 444, in stack
+    raise ValueError('need at least one array to stack')
+ValueError: need at least one array to stack

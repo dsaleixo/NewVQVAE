@@ -1,0 +1,18 @@
+{"time":"2025-10-09T08:34:37.442746454-03:00","level":"INFO","msg":"using version","core version":"0.18.0"}
+{"time":"2025-10-09T08:34:37.442780031-03:00","level":"INFO","msg":"created symlink","path":"/home/david/Área de trabalho/projetos/NewVQVAE/wandb/run-20251009_083437-linziupe/logs/debug-core.log"}
+{"time":"2025-10-09T08:34:37.442882823-03:00","level":"INFO","msg":"using version","core version":"0.18.0"}
+{"time":"2025-10-09T08:34:37.442908509-03:00","level":"INFO","msg":"created symlink","path":"/home/david/Área de trabalho/projetos/NewVQVAE/wandb/run-20251009_083437-linziupe/logs/debug-core.log"}
+{"time":"2025-10-09T08:34:37.447207268-03:00","level":"INFO","msg":"created new stream","id":"linziupe"}
+{"time":"2025-10-09T08:34:37.447268111-03:00","level":"INFO","msg":"stream: started","id":"linziupe"}
+{"time":"2025-10-09T08:34:37.44726184-03:00","level":"INFO","msg":"handler: started","stream_id":{"value":"linziupe"}}
+{"time":"2025-10-09T08:34:37.447301108-03:00","level":"INFO","msg":"sender: started","stream_id":{"value":"linziupe"}}
+{"time":"2025-10-09T08:34:37.447322493-03:00","level":"INFO","msg":"writer: Do: started","stream_id":{"value":"linziupe"}}
+{"time":"2025-10-09T08:34:37.966220142-03:00","level":"INFO","msg":"wandb-core","!BADKEY":null}
+{"time":"2025-10-09T08:34:37.967776424-03:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-10-09T08:34:41.617262372-03:00","level":"INFO","msg":"stream: closing","id":"linziupe"}
+{"time":"2025-10-09T08:34:41.617307489-03:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-10-09T08:34:41.617479577-03:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-10-09T08:34:43.058628944-03:00","level":"INFO","msg":"handler: closed","stream_id":{"value":"linziupe"}}
+{"time":"2025-10-09T08:34:43.058687766-03:00","level":"INFO","msg":"sender: closed","stream_id":{"value":"linziupe"}}
+{"time":"2025-10-09T08:34:43.058691173-03:00","level":"INFO","msg":"writer: Close: closed","stream_id":{"value":"linziupe"}}
+{"time":"2025-10-09T08:34:43.058841929-03:00","level":"INFO","msg":"stream: closed","id":"linziupe"}

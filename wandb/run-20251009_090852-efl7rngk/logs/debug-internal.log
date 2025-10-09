@@ -1,0 +1,18 @@
+{"time":"2025-10-09T09:08:52.420468061-03:00","level":"INFO","msg":"using version","core version":"0.18.0"}
+{"time":"2025-10-09T09:08:52.420488326-03:00","level":"INFO","msg":"created symlink","path":"/home/david/Área de trabalho/projetos/NewVQVAE/wandb/run-20251009_090852-efl7rngk/logs/debug-core.log"}
+{"time":"2025-10-09T09:08:52.420565383-03:00","level":"INFO","msg":"using version","core version":"0.18.0"}
+{"time":"2025-10-09T09:08:52.420573479-03:00","level":"INFO","msg":"created symlink","path":"/home/david/Área de trabalho/projetos/NewVQVAE/wandb/run-20251009_090852-efl7rngk/logs/debug-core.log"}
+{"time":"2025-10-09T09:08:52.424499524-03:00","level":"INFO","msg":"created new stream","id":"efl7rngk"}
+{"time":"2025-10-09T09:08:52.424532786-03:00","level":"INFO","msg":"stream: started","id":"efl7rngk"}
+{"time":"2025-10-09T09:08:52.424543243-03:00","level":"INFO","msg":"writer: Do: started","stream_id":{"value":"efl7rngk"}}
+{"time":"2025-10-09T09:08:52.424580631-03:00","level":"INFO","msg":"handler: started","stream_id":{"value":"efl7rngk"}}
+{"time":"2025-10-09T09:08:52.424575201-03:00","level":"INFO","msg":"sender: started","stream_id":{"value":"efl7rngk"}}
+{"time":"2025-10-09T09:08:52.930900881-03:00","level":"INFO","msg":"wandb-core","!BADKEY":null}
+{"time":"2025-10-09T09:08:52.933414371-03:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-10-09T09:09:00.092062783-03:00","level":"INFO","msg":"stream: closing","id":"efl7rngk"}
+{"time":"2025-10-09T09:09:00.092102411-03:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-10-09T09:09:00.09227549-03:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-10-09T09:09:01.583344358-03:00","level":"INFO","msg":"handler: closed","stream_id":{"value":"efl7rngk"}}
+{"time":"2025-10-09T09:09:01.583427283-03:00","level":"INFO","msg":"sender: closed","stream_id":{"value":"efl7rngk"}}
+{"time":"2025-10-09T09:09:01.583413956-03:00","level":"INFO","msg":"writer: Close: closed","stream_id":{"value":"efl7rngk"}}
+{"time":"2025-10-09T09:09:01.583584252-03:00","level":"INFO","msg":"stream: closed","id":"efl7rngk"}
