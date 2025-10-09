@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/home/david/Área de trabalho/projetos/NewVQVAE/Viewer.py", line 160, in <module>
-    Viewer.saveTensorAsVideo_opencv(video0,"control","trainVideo")
-AttributeError: type object 'Viewer' has no attribute 'saveTensorAsVideo_opencv'. Did you mean: 'saveTensorAsVideo'?
-Traceback (most recent call last):
-  File "/home/david/Área de trabalho/projetos/NewVQVAE/Viewer.py", line 160, in <module>
-    Viewer.saveTensorAsVideo_opencv(video0,"control","trainVideo")
-AttributeError: type object 'Viewer' has no attribute 'saveTensorAsVideo_opencv'. Did you mean: 'saveTensorAsVideo'?

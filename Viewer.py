@@ -144,7 +144,7 @@ class Viewer():
                     frame = (frame * 255).clamp(0, 255)
                 
                 # converte para numpy (H,W,C)
-                frame_np = frame.permute(1, 2, 0).cpu().numpy().astype('uint8')
+                frame_np = frame.permute(1, 2, 0).cpu().detach().numpy().astype('uint8')
                 frames.append(frame_np)
 
         # salva GIF temporário

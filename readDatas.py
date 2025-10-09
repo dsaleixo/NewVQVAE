@@ -4,6 +4,9 @@ import numpy as np
 
 from pathlib import Path
 import scipy.sparse
+from torch.utils.data import DataLoader
+from torch.utils.data import random_split
+
 
 class ReadDatas:
     def compress(img):
@@ -64,7 +67,7 @@ class ReadDatas:
             np.savez_compressed(folderOut+arq[:-3]+"npz", indices=indices, values=values, shape=img.shape)
 
 
-    def readData(folder,files=None):
+    def readData(folder,files=None)->torch.tensor:
         folder_path = Path(folder)
         if files ==None:
             files =  [f.name for f in folder_path.iterdir() if f.is_file()]
@@ -82,15 +85,45 @@ class ReadDatas:
             flat = np.zeros((np.prod(shape[:2]), 6), dtype=values.dtype)
             flat[indices] = values
             img = flat.reshape(shape)
-            imgs.append(torch.tensor(img,device="cpu").permute(2,0,1))
+            imgs.append(torch.tensor(img,device="cpu").permute(2,0,1).float())
             cont+=1
         return imgs
      
+
+
+    def loadDataLoader()->tuple[DataLoader,DataLoader]:
+
+
+        control = ReadDatas.readData("./",["resultado.npz"])[0]
+   
+
+    
+        data = ReadDatas.readData("./data/")
+
+    
+
+        dataValidation = ReadDatas.readData("./dataValidation/")
+        dataValidation.insert(0,control)
+        
+
+        print("load complete",len(data) )
+        
+        total_size = len(data) 
+        print("data shape ",data[0].shape)
+        train_size = int(0.8 * total_size)  # 80 amostras para treino
+        test_size = total_size - train_size  # 20 amostras para teste
+        train_set, test_set = random_split(data, [train_size, test_size])
+
+        train_loader = DataLoader(train_set, batch_size=32)
+        test_loader = DataLoader(test_set, batch_size=32, )
+        return train_loader,test_loader,dataValidation
+      
+  
 if __name__ == "__main__":
     #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     #data = ReadDatas.readData('./data/',device)
    #print(len(data),data[0].shape)
-   ReadDatas.convertDatasRawforCompress()
-   pass
-  
+   x,y,z=ReadDatas.loadDataLoader()
+   print(len(x),len(y),len(z))
+
       
