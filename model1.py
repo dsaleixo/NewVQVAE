@@ -284,7 +284,7 @@ def teste2():
     x = first_batch = next(iter(valLoader))
     Viewer.saveTensorAsImg(x,"OriginalImg","trainImagens")
     Viewer.saveTensorAsGIF(x,"OriginalVideo","trainVideo")
-    x = x[:3,:,:].unsqueeze(0)
+    x = x[:3,:,:].unsqueeze(0).to(device)
 
     print(x.shape)
     
