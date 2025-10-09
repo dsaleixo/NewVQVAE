@@ -305,7 +305,7 @@ def teste2():
 
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)  
       
-        if epoch%50==0:
+        if epoch%1000==0:
             Viewer.saveTensorAsImg(x_rec.squeeze(),"recontructionImg","trainImagens")
             Viewer.saveTensorAsGIF(x_rec.squeeze(),"recontructioVideo","trainVideo")
        
