@@ -277,7 +277,7 @@ def teste2():
 
     optimizer = optim.Adam(
         model.parameters(),
-        lr=2e-4
+        lr=2e-5
     )
     
     
