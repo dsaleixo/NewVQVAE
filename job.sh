@@ -2,7 +2,7 @@
 #SBATCH --job-name=meu_job
 #SBATCH --output=saida.log
 #SBATCH --error=erro.log
-#SBATCH --time=1:15:00
+#SBATCH --time=10:15:00
 #SBATCH --account=aip-lelis
 #SBATCH --gpus=1
 #SBATCH --mem-per-cpu=32G 
