@@ -410,7 +410,7 @@ def teste3():
     model = Model1().to(device)
     trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
 
-    num_epochs = 5
+    num_epochs = 100000000000000
     
 
     optimizer = optim.Adam(
