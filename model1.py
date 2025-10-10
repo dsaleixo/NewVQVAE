@@ -396,7 +396,7 @@ def teste3():
 
     wandb.init(
     project="VQVAE",
-    name = "Loopdevagar e sempre",
+    name = "teste2",
     #mode ="disabled",
     resume=False,
     config={
