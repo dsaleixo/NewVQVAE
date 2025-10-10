@@ -76,7 +76,8 @@ class ReadDatas:
         imgs = []
         for arq in files:
             if cont>100:
-                break
+                pass
+                #break
             data = np.load(folder+arq)
             indices = data["indices"]
             values = data["values"]
