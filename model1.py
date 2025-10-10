@@ -356,7 +356,7 @@ def teste3():
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
-            loss = recon_loss + vq_loss
+            loss = recon_loss*10 + vq_loss
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += recon_loss.item()
@@ -441,7 +441,7 @@ def teste3():
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
-            loss = recon_loss + vq_loss
+            loss = recon_loss*10 + vq_loss
             
             # --- Backprop ---
             loss.backward()
