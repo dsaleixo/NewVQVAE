@@ -469,7 +469,7 @@ def teste3():
                 
             })
         modelVal = validation(model,testLoader)
-        if bestModelVal>modelVal:
+        if bestModelVal-modelVal>0.0000001:
             print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxUpdadtexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
             bestModelVal=modelVal
             torch.save(model.state_dict(), f"BestTEstModelBest.pth")

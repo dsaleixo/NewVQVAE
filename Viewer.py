@@ -223,7 +223,7 @@ class Viewer():
             imageio.mimsave(gif_path, frames_concat, fps=fps, loop=0)
 
             # --- loga no W&B ---
-            wandb.log({"VideoRec/"+name: wandb.Video(gif_path, fps=fps, format="gif", caption=caption)}, commit=False)
+            wandb.log({"VideoRec/"+name: wandb.Video(gif_path, format="gif", caption=caption)}, commit=False)
 
             # --- remove temporário ---
             os.remove(gif_path)
