@@ -112,7 +112,9 @@ class ReadDatas:
         print("data shape ",data[0].shape)
         train_size = int(0.8 * total_size)  # 80 amostras para treino
         test_size = total_size - train_size  # 20 amostras para teste
-        train_set, test_set = random_split(data, [train_size, test_size])
+        generator = torch.Generator().manual_seed(42)
+
+        train_set, test_set = random_split(data, [train_size, test_size], generator=generator)
 
         train_loader = DataLoader(train_set, batch_size=32)
         test_loader = DataLoader(test_set, batch_size=32, )
