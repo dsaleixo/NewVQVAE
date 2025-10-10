@@ -311,7 +311,7 @@ def teste2():
        
         # --- Loss ---
         recon_loss = F.mse_loss(x_rec, x)
-        loss = recon_loss 
+        loss = recon_loss +vq_loss
         
         # --- Backprop ---
         loss.backward()
@@ -338,7 +338,82 @@ def teste2():
             f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}"
         )
 
+
+def teste3():
+
+
+    wandb.init(
+    project="VQVAE",
+    name = "X1_2ee",
+    mode ="disabled",
+    config={
+     "test": 1,
+
+        }
+    )
     
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("device)",device)
+    model = Model1().to(device)
+    trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
+
+    num_epochs = 100000000000
+    
+
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=2e-5
+    )
+    
+    '''
+    x = first_batch = next(iter(valLoader))
+    Viewer.saveTensorAsImg(x,"OriginalImg","trainImagens")
+    Viewer.saveTensorAsGIF(x,"OriginalVideo","trainVideo")
+    x = x[:3,:,:].unsqueeze(0).to(device)
+    '''
+    print(x.shape)
+    
+    for epoch in range(num_epochs):
+
+    
+    
+        running_loss = 0.0
+        running_perplexity = 0.0
+
+        for batch_idx, batch in enumerate(trainLoader):
+            # Supondo que batch = (x, y, z) ou apenas imagens x
+            x = batch[0].to(device)  # [B, C, H, W]
+            model.train()
+            optimizer.zero_grad()
+            
+            # --- Forward ---
+       
+            x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
+            # --- Loss ---
+            recon_loss = F.mse_loss(x_rec, x)
+            loss = recon_loss + vq_loss
+            
+            # --- Backprop ---
+            loss.backward()
+            optimizer.step()
+            
+            # --- Logging ---
+            running_loss += loss.item()
+            running_perplexity += perplexity.item()
+            
+            if batch_idx % 10 == 0:
+                print(
+                    f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx}], "
+                    f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, "
+                    f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
+                    f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}"
+                )
+
+        avg_loss = running_loss / len(trainLoader)
+        avg_perplexity = running_perplexity / len(trainLoader)
+        print(f"Epoch [{epoch+1}/{num_epochs}] Complete: Avg Loss: {avg_loss:.4f}, Avg Perplexity: {avg_perplexity:.2f}")
+
+
 
 
 if __name__ == "__main__":
