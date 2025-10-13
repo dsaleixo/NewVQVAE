@@ -32,7 +32,7 @@ if __name__ == "__main__":
     )
     
     
-    x = first_batch = next(iter(valLoader))
+    x = first_batch = valLoader[0]
     Viewer.saveListTensorAsImg(x,"OriginalImg","trainImagens")
     Viewer.saveTensorAsGIF(x,"OriginalVideo","trainVideo")
     x = x[:3,:,:].unsqueeze(0).to(device)
