@@ -8,6 +8,17 @@ from model1 import Model1
 from readDatas import ReadDatas
 from torch.nn import functional as F
 
+def initialProcess(model,valLoader,device):
+        model.eval()
+        #for i in range(len(valLoader)):
+        i=0
+        x = valLoader[i][:3,:,:].unsqueeze(0).to(device)
+        x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
+        imgs = [x.squeeze(),x_rec.squeeze()]
+        Viewer.saveListTensorAsImg(imgs,f"RecImagemVal{i}",f"match{i}")
+        Viewer.saveTensorAsGIF(imgs,f"RecVideoVal{i}",f"match{i}")
+
+
 if __name__ == "__main__":
     wandb.init(
         project="VQVAE",
@@ -34,8 +45,7 @@ if __name__ == "__main__":
     
     x = first_batch = valLoader[0]
     print(x.shape)
-    Viewer.saveListTensorAsImg(x,"OriginalImg","trainImagens")
-    Viewer.saveTensorAsGIF(x,"OriginalVideo","trainVideo")
+    initialProcess(model,valLoader,device)
     x = x[:3,:,:].unsqueeze(0).to(device)
 
     print(x.shape)
@@ -58,8 +68,7 @@ if __name__ == "__main__":
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)  
       
         if epoch%1000==0:
-            Viewer.saveListTensorAsImg(x_rec.squeeze(),"recontructionImg","trainImagens")
-            Viewer.saveTensorAsGIF(x_rec.squeeze(),"recontructioVideo","trainVideo")
+            initialProcess(model,valLoader,device)
        
         # --- Loss ---
         recon_loss = F.mse_loss(x_rec, x)
