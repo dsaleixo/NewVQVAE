@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
+
+from modelBase import ModelBase
 from Viewer import Viewer
 from readDatas import ReadDatas
 
@@ -61,7 +63,7 @@ class VectorQuantizerEMA(nn.Module):
         self.eps = eps
 
         # Inicializa codebook e buffers para EMA
-        embed = torch.randn(num_embeddings, embedding_dim)
+        embed = torch.randn(num_embeddings, embedding_dim)*0.1
         self.register_buffer("_embedding", embed)
         self.register_buffer("_cluster_size", torch.zeros(num_embeddings))
         self.register_buffer("_embedding_avg", embed.clone())
@@ -213,12 +215,16 @@ class HybridTransformerDecoder(nn.Module):
         return torch.tanh(x)  # normalizado [-1, 1]
 
 
-class Model1(nn.Module):
-    def __init__(self):
+class Model1(ModelBase):
+    def __init__(self,device):
         super().__init__()   
+        self.device = device
+        self.num_embeddings = 30
+        self.embedding_dim = 128
         self.encoder =ViTEncoder()
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
         self.decoder = HybridTransformerDecoder()
+        self.to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.encoder(x)
@@ -227,6 +233,29 @@ class Model1(nn.Module):
         out = self.decoder(z_q) 
         return out, loss, indices, perplexity, used_codes 
 
+
+
+    
+
+    def getFeature(self,x):
+        out = self.encoder(x)
+        z_q, loss, indices, perplexity, used_codes = self.quantizer(out)
+        return indices
+    
+    def getnNumEmbeddings(self):
+        return self.num_embeddings
+    
+    def getEmbeddingDim(self):
+        return self.embedding_dim
+    
+    def getVector(self,i:int):
+        return self.quantizer._embedding[i]
+
+
+    def prepareInputData(self,x):
+        x=x.to(self.device) 
+        x = x[:,:3,:,:]
+        return x
 
 
 
@@ -255,88 +284,10 @@ def teste1():
     
 
 
-def teste2():
 
 
-    wandb.init(
-    project="VQVAE",
-    name = "X1_2ee",
-    config={
-     "test": 1,
 
-        }
-    )
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("device)",device)
-    model = Model1().to(device)
-    trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
-
-    num_epochs = 100000000000
-    
-
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=2e-5
-    )
-    
-    
-    x = first_batch = next(iter(valLoader))
-    Viewer.saveTensorAsImg(x,"OriginalImg","trainImagens")
-    Viewer.saveTensorAsGIF(x,"OriginalVideo","trainVideo")
-    x = x[:3,:,:].unsqueeze(0).to(device)
-
-    print(x.shape)
-    
-    for epoch in range(num_epochs):
-        model.train()
-
-         # [B, C, H, W]
-        running_loss = 0.0
-        running_perplexity = 0.0
-
-        
-        
-        
-        optimizer.zero_grad()
-        
-        # --- Forward ---
-        
-
-        x_rec, vq_loss, indices, perplexity, used_codes = model(x)  
-      
-        if epoch%1000==0:
-            Viewer.saveTensorAsImg(x_rec.squeeze(),"recontructionImg","trainImagens")
-            Viewer.saveTensorAsGIF(x_rec.squeeze(),"recontructioVideo","trainVideo")
-       
-        # --- Loss ---
-        recon_loss = F.mse_loss(x_rec, x)
-        loss = recon_loss +vq_loss
-        
-        # --- Backprop ---
-        loss.backward()
-        optimizer.step()
-        
-        # --- Logging ---
-        running_loss += loss.item()
-        running_perplexity += perplexity.item()
-        
-        wandb.log({
-              
-                "Train/Recon Loss": loss.item(),
-         
-                "Train/VQ Loss": vq_loss.item(),
-                "Train/VQ Perplexity": perplexity.item(),
-                "Train/VQ Used Codes": used_codes.sum().item(),
-                
-                
-            })
-        print(
-            f"Epoch [{epoch+1}/{num_epochs}], Batch [{0}], "
-            f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, "
-            f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
-            f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}"
-        )
 
 
 def teste3():
@@ -407,7 +358,7 @@ def teste3():
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("device)",device)
-    model = Model1().to(device)
+    model = Model1(device)
     trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
 
     num_epochs = 100000000000000
@@ -432,6 +383,7 @@ def teste3():
 
         for batch_idx, batch in enumerate(trainLoader):
             # Supondo que batch = (x, y, z) ou apenas imagens x
+            print(batch.shape)
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
             model.train()
             optimizer.zero_grad()
