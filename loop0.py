@@ -33,7 +33,7 @@ if __name__ == "__main__":
     
     
     x = first_batch = next(iter(valLoader))
-    Viewer.saveTensorAsImg(x,"OriginalImg","trainImagens")
+    Viewer.saveListTensorAsImg(x,"OriginalImg","trainImagens")
     Viewer.saveTensorAsGIF(x,"OriginalVideo","trainVideo")
     x = x[:3,:,:].unsqueeze(0).to(device)
 
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)  
       
         if epoch%1000==0:
-            Viewer.saveTensorAsImg(x_rec.squeeze(),"recontructionImg","trainImagens")
+            Viewer.saveListTensorAsImg(x_rec.squeeze(),"recontructionImg","trainImagens")
             Viewer.saveTensorAsGIF(x_rec.squeeze(),"recontructioVideo","trainVideo")
        
         # --- Loss ---
