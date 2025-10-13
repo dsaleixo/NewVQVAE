@@ -40,7 +40,7 @@ def initialProcess(model,valLoader,device):
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
         x_rec = x_rec.squeeze()
         x_rec_q = quantize_colors(x_rec)
-        imgs = [x.squeeze(),x_rec.x_rec_q]
+        imgs = [x.squeeze(),x_rec,x_rec_q]
         Viewer.saveListTensorAsImg(imgs,f"RecImagemVal{i}",f"match{i}")
         Viewer.saveTensorAsGIF(imgs,f"RecVideoVal{i}",f"match{i}")
 
