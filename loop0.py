@@ -33,6 +33,7 @@ if __name__ == "__main__":
     
     
     x = first_batch = valLoader[0]
+    print(x.shape)
     Viewer.saveListTensorAsImg(x,"OriginalImg","trainImagens")
     Viewer.saveTensorAsGIF(x,"OriginalVideo","trainVideo")
     x = x[:3,:,:].unsqueeze(0).to(device)
