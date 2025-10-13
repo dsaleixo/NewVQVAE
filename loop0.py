@@ -7,6 +7,30 @@ from Viewer import Viewer
 from model1 import Model1
 from readDatas import ReadDatas
 from torch.nn import functional as F
+palette = torch.tensor([
+                [255,255,255],
+                [200,200,200],
+                [255,100,10],
+                [255,255,0],
+                [0, 255, 255],
+                [0,0,0],
+                [127,127,127],
+            ], dtype=torch.float32)
+palette/=255
+
+
+def quantize_colors(video: torch.Tensor, ) -> torch.Tensor:
+
+    C, H, W = video.shape
+    assert C == 3, "Esperado 3 canais RGB"
+    flat = video.permute(1,2,0).reshape(-1,3)  # (N,3)
+    dists = torch.cdist(flat, palette)  # L2 distance
+    indices = torch.argmin(dists, dim=1)  # (N,)
+    quantized_flat = palette[indices]  # (N,3)
+    quantized = quantized_flat.view(H,W,3).permute(2,0,1)  # (3,T,H,W)
+
+    return quantized
+
 
 def initialProcess(model,valLoader,device):
         model.eval()
@@ -14,7 +38,9 @@ def initialProcess(model,valLoader,device):
         i=0
         x = valLoader[i][:3,:,:].unsqueeze(0).to(device)
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
-        imgs = [x.squeeze(),x_rec.squeeze()]
+        x_rec = x_rec.squeeze()
+        x_rec_q = quantize_colors(x_rec)
+        imgs = [x.squeeze(),x_rec.x_rec_q]
         Viewer.saveListTensorAsImg(imgs,f"RecImagemVal{i}",f"match{i}")
         Viewer.saveTensorAsGIF(imgs,f"RecVideoVal{i}",f"match{i}")
 
