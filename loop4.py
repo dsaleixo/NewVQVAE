@@ -41,8 +41,8 @@ def closest_palette_loss(pred_rgb, target_rgb, palette):
     """
     #print("sahpe_pred",pred_rgb.shape)
     #print("target_rgb",target_rgb.shape)
-    target_rgb = target_rgb[:, :3, :, :, :] 
-    pred_rgb = pred_rgb[:, :3, :, :, :] 
+    target_rgb = target_rgb[:, :3, :, :] 
+    pred_rgb = pred_rgb[:, :3, :, :] 
     device = pred_rgb.device
 
     B, _, H, W = pred_rgb.shape
