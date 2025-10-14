@@ -89,7 +89,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
-            loss_J =closest_palette_loss(x_rec, x)
+            loss_J =closest_palette_loss(x_rec, x,palette)
             loss = recon_loss + vq_loss+loss_J
 
             total_loss_epoch += loss.item()
@@ -191,7 +191,7 @@ if __name__ == "__main__":
        
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
-            recon_loss = F.mse_loss(x_rec, x)
+            recon_loss = F.mse_loss(x_rec, x,palette)
             loss_J =closest_palette_loss(x_rec, x)
             loss = recon_loss + vq_loss+loss_J
             
