@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     wandb.init(
     project="VQVAE",
-    name = "loop1",
+    name = "loop2",
     #mode ="disabled",
     resume=False,
     config={
