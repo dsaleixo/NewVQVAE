@@ -46,94 +46,6 @@ class ViTEncoder(nn.Module):
         return x  # [B, D, H', W']
 
 
-class VectorQuantizerEMA(nn.Module):
-    def __init__(self, num_embeddings: int, embedding_dim: int, decay: float = 0.99, eps: float = 1e-5):
-        """
-        Vector Quantizer with Exponential Moving Average (EMA) updates.
-        Args:
-            num_embeddings: number of codebook entries (K)
-            embedding_dim: dimension of each embedding (D)
-            decay: EMA decay rate
-            eps: small epsilon for numerical stability
-        """
-        super().__init__()
-        self.num_embeddings = num_embeddings
-        self.embedding_dim = embedding_dim
-        self.decay = decay
-        self.eps = eps
-
-        # Inicializa codebook e buffers para EMA
-        embed = torch.randn(num_embeddings, embedding_dim)*2 -1
-        self.register_buffer("_embedding", embed)
-        self.register_buffer("_cluster_size", torch.zeros(num_embeddings))
-        self.register_buffer("_embedding_avg", embed.clone())
-
-    def forward(self, z: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Args:
-            z: input tensor [B, D, H, W]
-        Returns:
-            z_q: quantized tensor [B, D, H, W]
-            loss: commitment loss
-            indices: selected code indices [B, H, W]
-            perplexity: codebook perplexity
-            used_codes: binary mask [K], True if code used
-        """
-        B, D, H, W = z.shape
-        z_perm = z.permute(0, 2, 3, 1).contiguous()  # [B, H, W, D]
-        flat_z = z_perm.view(-1, D)  # [B*H*W, D]
-
-        # Distância L2 entre vetores e embeddings
-        distances = (
-            flat_z.pow(2).sum(1, keepdim=True)
-            + self._embedding.pow(2).sum(1)
-            - 2 * torch.matmul(flat_z, self._embedding.t())
-        )
-
-        # Índices do vetor mais próximo
-        encoding_indices = torch.argmin(distances, dim=1)
-        encodings = F.one_hot(encoding_indices, self.num_embeddings).type(flat_z.dtype)
-
-        # Quantização
-        quantized = torch.matmul(encodings, self._embedding)
-        quantized = quantized.view(B, H, W, D).permute(0, 3, 1, 2).contiguous()
-
-        # --- EMA updates ---
-        if self.training:
-            cluster_size = encodings.sum(0)
-            embed_sum = torch.matmul(encodings.t(), flat_z)
-
-            self._cluster_size.data.mul_(self.decay).add_(cluster_size, alpha=1 - self.decay)
-            self._embedding_avg.data.mul_(self.decay).add_(embed_sum, alpha=1 - self.decay)
-
-            n = self._cluster_size.sum()
-            cluster_size = (
-                (self._cluster_size + self.eps)
-                / (n + self.num_embeddings * self.eps)
-                * n
-            )
-            self._embedding.data.copy_(self._embedding_avg / cluster_size.unsqueeze(1))
-
-        # Straight-through estimator
-        z_q = z + (quantized - z).detach()
-
-        # --- Métricas extras ---
-        # 1. Perda de compromisso
-        loss = F.mse_loss(z_q.detach(), z)
-
-        # 2. Índices reshape
-        indices = encoding_indices.view(B, H, W)
-
-        # 3. Perplexity
-        avg_probs = encodings.mean(0)
-        perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
-
-        # 4. used_codes (máscara binária de códigos utilizados)
-        used_codes = (encodings.sum(0) > 0).float()
-
-        return z_q, loss, indices, perplexity, used_codes
-
-
 
 class TransformerDecoder(nn.Module):
     def __init__(self, emb_dim: int = 128, img_size: int = 288, patch_size: int = 24, n_layers: int = 2, n_heads: int = 8, out_channels: int = 3):
@@ -215,41 +127,39 @@ class HybridTransformerDecoder(nn.Module):
         return torch.tanh(x)  # normalizado [-1, 1]
 
 
-class Model1(ModelBase):
+class ModelNoQ(ModelBase):
     def __init__(self,device):
         super().__init__()   
         self.device = device
-        self.num_embeddings = 30
-        self.embedding_dim = 128
+   
         self.encoder =ViTEncoder()
-        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
+ 
         self.decoder = HybridTransformerDecoder()
         self.to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.encoder(x)
-        z_q, loss, indices, perplexity, used_codes = self.quantizer(out)
+    
      
-        out = self.decoder(z_q) 
-        return out, loss, indices, perplexity, used_codes 
+        out = self.decoder(out) 
+        return out
 
 
 
     
 
     def getFeature(self,x):
-        out = self.encoder(x)
-        z_q, loss, indices, perplexity, used_codes = self.quantizer(out)
-        return indices
+
+        return None
     
     def getnNumEmbeddings(self):
-        return self.num_embeddings
+        return None
     
     def getEmbeddingDim(self):
-        return self.embedding_dim
+        return None
     
     def getVector(self,i:int):
-        return self.quantizer._embedding[i]
+        return None
 
 
     def prepareInputData(self,x):
@@ -267,15 +177,15 @@ def teste0():
     model =ViTEncoder()
     out = model(test)
     print(out.shape)
-    quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
-    z_q, loss, indices, perplexity, used_codes = quantizer(out)
-    print(z_q.shape)
+
+ 
+
     decoder = TransformerDecoder()
-    x_rec = decoder(z_q) 
+    x_rec = decoder(out) 
     print(x_rec.shape)
 
 def teste1():
-    model = Model1()
+    model = ModelNoQ()
     video0 = ReadDatas.readData("./",["resultado.npz"])[0]
     video0 = video0[:3,:,:]
     test = video0.unsqueeze(0).float()
@@ -294,4 +204,4 @@ def teste1():
 
 
 if __name__ == "__main__":
-    teste3()
+    teste0()
