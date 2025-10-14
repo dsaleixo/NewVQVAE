@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python loop0.py
+python loop2.py

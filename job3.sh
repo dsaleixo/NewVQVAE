@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python model1.py
+python loop3.py
