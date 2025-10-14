@@ -19,46 +19,7 @@ palette = torch.tensor([
             ], dtype=torch.float32)
 palette/=255
 
-def closest_palette_loss(pred_rgb, target_rgb, palette):
-    """
-    pred_rgb: (B, 3, T, H, W)
-    target_rgb: (B, 3, T, H, W)
-    palette: (7, 3)
-    """
-    #print("sahpe_pred",pred_rgb.shape)
-    #print("target_rgb",target_rgb.shape)
-    target_rgb = target_rgb[:, :3, :, :, :] 
-    pred_rgb = pred_rgb[:, :3, :, :, :] 
-    device = pred_rgb.device
 
-    B, _, T, H, W = pred_rgb.shape
-    N = B * T * H * W
-
-    # Flatten (N,3)
-    pred_flat = pred_rgb.permute(0,2,3,4,1).reshape(N,3)
-    target_flat = target_rgb.permute(0,2,3,4,1).reshape(N,3)
-
-    # Distâncias da predição para todas cores da paleta
-    pred_dists = torch.cdist(pred_flat, palette)   # (N,7)
-    pred_closest_idx = torch.argmin(pred_dists, dim=1)  # (N,)
-
-    # Distâncias do target para todas cores da paleta
-    target_dists = torch.cdist(target_flat, palette)  # (N,7)
-    target_closest_idx = torch.argmin(target_dists, dim=1)  # (N,)
-
-    # Máscara de erro
-    mask_wrong = pred_closest_idx != target_closest_idx
-
-    # Distância entre a predição e a cor-alvo da paleta
-    target_palette_colors = palette[target_closest_idx]  # (N,3)
-    penalization_dist = torch.norm(pred_flat - target_palette_colors, dim=1)
-
-    if mask_wrong.any():
-        loss = penalization_dist[mask_wrong].mean()
-    else:
-        loss = torch.tensor(0.0, device=device)
-
-    return loss 
 def quantize_colors(video: torch.Tensor, ) -> torch.Tensor:
 
     C, H, W = video.shape
@@ -167,7 +128,7 @@ if __name__ == "__main__":
 
     wandb.init(
     project="VQVAE",
-    name = "loop1",
+    name = "loop3",
     #mode ="disabled",
     resume=False,
     config={
