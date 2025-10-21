@@ -141,13 +141,13 @@ if __name__ == "__main__":
 
 
     
-
+    #mode ="disabled",
 
 
     wandb.init(
     project="VQVAE",
     name = "loop5",
-    #mode ="disabled",
+    
     resume=False,
     config={
      "test": 1,
