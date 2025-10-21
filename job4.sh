@@ -2,7 +2,7 @@
 #SBATCH --job-name=meu_job
 #SBATCH --output=saida.log
 #SBATCH --error=erro.log
-#SBATCH --time=4:15:00
+#SBATCH --time=3:10:00
 #SBATCH --account=aip-lelis
 #SBATCH --gpus=1
 #SBATCH --mem-per-cpu=32G 
@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python loop4.py
+python loop5.py
