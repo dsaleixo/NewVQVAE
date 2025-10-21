@@ -174,8 +174,8 @@ if __name__ == "__main__":
     #initialProcess(model,valLoader,device)
     initialProcess(model,valLoader,device)
     bestModelVal = validation(model,testLoader)
-    epochVQturnOn = 300
-    nextEpoch= 300
+    epochVQturnOn = 30
+    nextEpoch= 30
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
             model.initializeWeights(-1,5,trainLoader)
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
         for batch_idx, batch in enumerate(trainLoader):
             # Supondo que batch = (x, y, z) ou apenas imagens x
-            print(batch.shape)
+            #print(batch.shape)
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
             model.train()
             optimizer.zero_grad()
@@ -238,7 +238,7 @@ if __name__ == "__main__":
             initialProcess(model,valLoader,device)  
             wandb.log({"Updade":1})
             if epoch>epochVQturnOn and nextEpoch<epoch:
-                nextEpoch+=1000
+                nextEpoch+=30
                 analise = Analysis()
                 analise.analiseCodebook(model,trainLoader,"Train")
                 analise.analiseCodebook(model,testLoader,"Test")
