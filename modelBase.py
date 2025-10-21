@@ -24,4 +24,16 @@ class ModelBase(ABC,nn.Module):
     @abstractmethod
     def prepareInputData(self,x):
         raise NotImplementedError
+    
+    @abstractmethod
+    def prepareInputData(self,x):
+        raise NotImplementedError
 
+    @abstractmethod
+    def initializeWeights(self,op:int=0):
+        raise NotImplementedError
+      
+
+        
+
+    

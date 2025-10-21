@@ -8,7 +8,7 @@ from Viewer import Viewer
 from readDatas import ReadDatas
 
 from torch import nn, optim
-
+from sklearn.cluster import MiniBatchKMeans
 
 import os
 import wandb
@@ -63,7 +63,7 @@ class VectorQuantizerEMA(nn.Module):
         self.eps = eps
 
         # Inicializa codebook e buffers para EMA
-        embed = torch.randn(num_embeddings, embedding_dim)*2 -1
+        embed = torch.randn(num_embeddings, embedding_dim)
         self.register_buffer("_embedding", embed)
         self.register_buffer("_cluster_size", torch.zeros(num_embeddings))
         self.register_buffer("_embedding_avg", embed.clone())
@@ -133,6 +133,116 @@ class VectorQuantizerEMA(nn.Module):
 
         return z_q, loss, indices, perplexity, used_codes
 
+    @torch.no_grad()
+    def init_from_features(self, z: torch.Tensor) -> None:
+        """
+        Inicializa o codebook a partir de vetores de features reais.
+        Espera um tensor [N, D].
+        """
+        assert z.shape[1] == self.embedding_dim, "Dimensão incompatível."
+        n = min(z.shape[0], self.num_embeddings)
+        idx = torch.randperm(z.shape[0])[:n]
+        self._embedding[:n].copy_(z[idx])
+        self._embedding_avg.copy_(self._embedding)
+        print(f"✅ Codebook inicializado com {n} features reais.")
+
+    def _init_codebook(self, method: str) -> torch.Tensor:
+        if method == "uniform":
+            embed = torch.empty(self.num_embeddings, self.embedding_dim)
+            nn.init.uniform_(embed, -1 / self.num_embeddings, 1 / self.num_embeddings)
+        elif method == "normalized":
+            embed = torch.randn(self.num_embeddings, self.embedding_dim)
+            embed = F.normalize(embed, dim=1)
+        else:  # "normal_small"
+            embed = torch.randn(self.num_embeddings, self.embedding_dim) * 0.01
+        return embed
+
+
+
+
+    @torch.no_grad()
+    def init_from_dataloader(self, encoder: nn.Module, dataloader, device, max_samples: int = 50_000):
+        """
+        Inicializa o codebook com features amostradas de todo o dataset.
+        Usa memória constante, coleta batches pequenos e acumula até atingir max_samples.
+        """
+        encoder.eval()
+        feats = []
+        for batch in dataloader:
+            x = batch.to(device)
+            #print(x.shape)
+            x= x[:,:3,:,:]
+            z = encoder(x)
+            z = z.reshape(-1, self.embedding_dim).cpu()
+
+            # Amostragem aleatória
+            if z.shape[0] > 2048:
+                idx = torch.randperm(z.shape[0])[:2048]
+                z = z[idx]
+
+            feats.append(z)
+            if sum(len(f) for f in feats) > max_samples:
+                break
+
+        feats = torch.cat(feats, dim=0)[:max_samples]
+        print(f"🧠 Coletados {len(feats)} vetores para inicializar o codebook.")
+        self.init_from_features(feats)
+
+
+    
+
+    @torch.no_grad()
+    def init_kmeans_streaming(
+        self,
+        encoder: nn.Module,
+        dataloader,
+        device,
+        n_iter: int = 100,
+        batch_size_kmeans: int = 2048,
+    ):
+        """
+        Executa K-Means incremental usando batches do dataset.
+        Extremamente eficiente em memória.
+        """
+        encoder.eval()
+        kmeans = MiniBatchKMeans(n_clusters=self.num_embeddings, batch_size=batch_size_kmeans, n_init=1, max_iter=n_iter)
+        for _ in range(5):
+            for i, batch in enumerate(dataloader):
+                x = batch.to(device)
+                #print(x.shape)
+                x= x[:,:3,:,:]
+                z = encoder(x).reshape(-1, self.embedding_dim).cpu().numpy()
+                kmeans.partial_fit(z)
+                if i % 10 == 0:
+                    print(f"Iteração {i}, centróides atualizados.")
+
+        centers = torch.tensor(kmeans.cluster_centers_, dtype=torch.float)
+        self._embedding.copy_(centers)
+        self._embedding_avg.copy_(centers)
+        print(f"✅ Codebook inicializado via streaming K-Means ({n_iter} iterações totais).")
+
+
+    @torch.no_grad()
+    def init_from_dataset_ema(self, encoder: nn.Module, dataloader, device, decay: float = 0.99):
+        """
+        Inicializa o codebook usando médias exponenciais dos features do dataset.
+        """
+        encoder.eval()
+        embed_sum = torch.zeros_like(self._embedding)
+        cluster_size = torch.zeros(self.num_embeddings, device=device)
+        
+        for batch in dataloader:
+            x = batch.to(device)
+            #print(x.shape)
+            x= x[:,:3,:,:]
+            z = encoder(x).reshape(-1, self.embedding_dim)
+            idx = torch.randint(0, self.num_embeddings, (z.size(0),), device=device)
+            embed_sum.index_add_(0, idx, z)
+            cluster_size.index_add_(0, idx, torch.ones_like(idx, dtype=torch.float))
+
+        self._embedding.copy_(embed_sum / (cluster_size.unsqueeze(1) + 1e-5))
+        self._embedding_avg.copy_(self._embedding)
+        print("✅ Codebook inicializado via EMA sobre o dataset.")
 
 
 class TransformerDecoder(nn.Module):
@@ -226,12 +336,21 @@ class Model1(ModelBase):
         self.decoder = HybridTransformerDecoder()
         self.to(device)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, turnOnQuantization=True) -> torch.Tensor:
         out = self.encoder(x)
-        z_q, loss, indices, perplexity, used_codes = self.quantizer(out)
-     
-        out = self.decoder(z_q) 
-        return out, loss, indices, perplexity, used_codes 
+
+        if turnOnQuantization:
+            z_q, loss, indices, perplexity, used_codes = self.quantizer(out)
+        else:
+            # ainda não quantiza — apenas passa direto
+            z_q = out
+            loss = torch.tensor(0.0, device=x.device)
+            indices = None
+            perplexity = torch.zeros(1, device=x.device, dtype=x.dtype)-1
+            used_codes = torch.zeros(1, device=x.device, dtype=x.dtype)-1
+
+        out = self.decoder(z_q)
+        return out, loss, indices, perplexity, used_codes
 
 
 
@@ -257,7 +376,39 @@ class Model1(ModelBase):
         x = x[:,:3,:,:]
         return x
 
+    def initializeWeights(self,opEnc:int= -1,opVQ:int=-1,data=None):
+        if opEnc ==0:
+            for m in self.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0.0, std=0.01)
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0.0)
+        elif opEnc ==1:
+            nn.init.normal_(self.encoder.patch_embed.proj.weight, mean=0.0, std=0.01)
+            nn.init.constant_(self.encoder.patch_embed.proj.bias, 0.0)
+        elif opEnc ==2:
+            with torch.no_grad():
+                w = torch.randn_like(self.encoder.patch_embed.proj.weight)
+                w = F.normalize(w, dim=1) * 0.02  # controla magnitude
+                self.encoder.patch_embed.proj.weight.copy_(w)
+                nn.init.constant_(self.encoder.patch_embed.proj.bias, 0.0)
+        elif opEnc ==3:
+            pass
 
+
+        if opVQ ==0:
+            self.quantizer._init_codebook("normal_small")
+        elif opVQ ==1:
+            self.quantizer._init_codebook("uniform")
+        elif opVQ==2:
+            self.quantizer._init_codebook("normalized")
+        elif opVQ==3:
+            self.quantizer.init_from_dataloader(self.encoder,data,self.device)
+        elif opVQ==4:
+            self.quantizer.init_kmeans_streaming(self.encoder,data,self.device,10)
+        elif opVQ==5:
+            self.quantizer.init_from_dataset_ema(self.encoder,data,self.device)
+            
 
 def teste0():
     video0 = ReadDatas.readData("./",["resultado.npz"])[0]

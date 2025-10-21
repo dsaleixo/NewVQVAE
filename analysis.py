@@ -56,8 +56,8 @@ class Analysis:
             x_np = vector.cpu().numpy()
             vetores.append(x_np)
 
-        distancias(vetores)
-        '''
+            #distancias(vetores)
+        
             plt.subplot(ne, 1, i+1)       # ne linhas, 1 coluna, posição i+1
             plt.plot(x_np, label=f"Embedding {i}")
             plt.title(f"Gráfico de linha {i}")
@@ -68,7 +68,7 @@ class Analysis:
         plt.tight_layout()
         wandb.log({"AllEmbeddings": wandb.Image(plt)})
         plt.close()
-        '''
+        
 
     def analiseCodebook(self,model:ModelBase,data : DataLoader,name:str):
         
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     wandb.init(
         project="VQVAE",
-        name = "analise",
+        name = "inialização23",
         #mode ="disabled",
         resume=False,
         config={
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     print("device)",device)
     model : ModelBase = Model1(device)
     trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
-
+    model.initializeWeights(2,1,trainLoader)
     analise = Analysis()
-    #analise.analiseCodebook(model,testLoader,"Test")
+    analise.analiseCodebook(model,testLoader,"Test")
     analise.analiseCodebookIndividual(model)
