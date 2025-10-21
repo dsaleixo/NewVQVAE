@@ -238,7 +238,7 @@ if __name__ == "__main__":
             initialProcess(model,valLoader,device)  
             wandb.log({"Updade":1})
             if epoch>epochVQturnOn and nextEpoch<epoch:
-                nextEpoch+=30
+                nextEpoch=30+epoch
                 analise = Analysis()
                 analise.analiseCodebook(model,trainLoader,"Train")
                 analise.analiseCodebook(model,testLoader,"Test")
