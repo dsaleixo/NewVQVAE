@@ -85,7 +85,7 @@ class Analysis:
         print(contVextorUsedBySpot.shape)
         print(contVextorUsed.shape)
         count  =0
-        for batch_idx, batch in enumerate(trainLoader):
+        for batch_idx, batch in enumerate(data):
             # Supondo que batch = (x, y, z) ou apenas imagens x
             
             x = model.prepareInputData(batch) 
