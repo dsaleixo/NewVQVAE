@@ -71,7 +71,7 @@ if __name__ == "__main__":
     wandb.init(
         project="VQVAE",
         name = "X1_OH",
-        mode="disabled",
+     
         config={
         "test": 1,
 
