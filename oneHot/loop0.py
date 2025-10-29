@@ -38,7 +38,10 @@ def initialProcess(model,valLoader,device):
         #for i in range(len(valLoader)):
         i=0
         x = valLoader[i][:7,:,:].unsqueeze(0).to(device)
+        labels = torch.argmax(x.squeeze(), dim=1)
+        print("ww",labels.shape)
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
+
         x_rec = x_rec.squeeze()  
         imgs = [x.squeeze(),x_rec]
         Viewer.saveListTensorAsImg(imgs,f"RecImagemVal{i}",f"match{i}")
@@ -49,7 +52,7 @@ if __name__ == "__main__":
     wandb.init(
         project="VQVAE",
         name = "X1_OH",
-       
+        mode="disabled",
         config={
         "test": 1,
 
@@ -86,6 +89,9 @@ if __name__ == "__main__":
     x = first_batch = valLoader[0]
     print(x.shape)
     initialProcess(model,valLoader,device)
+
+
+    '''
     x = x[:7,:,:].unsqueeze(0).to(device)
 
     print(x.shape)
@@ -150,3 +156,4 @@ if __name__ == "__main__":
 
         # Scheduler escuta a música do treino
         #scheduler.step(avg_train_loss)
+    '''
