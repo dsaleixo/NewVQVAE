@@ -96,7 +96,7 @@ if __name__ == "__main__":
         # --- Forward ---
         
 
-        logits, vq_loss, indices, perplexity, used_codes = model(x,False)  
+        logits, vq_loss, indices, perplexity, used_codes = model(x)  
       
         if epoch%1000==0:
             initialProcess(model,valLoader,device)
