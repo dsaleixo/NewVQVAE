@@ -42,7 +42,7 @@ if __name__ == "__main__":
   
     model = ModelOH1(device)
     trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader(True)
-    model.initializeWeights(1,3)
+    model.initializeWeights(1,3,trainLoader)
     num_epochs = 100000000000
     
 
