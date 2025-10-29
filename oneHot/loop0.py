@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=2e-3,
+        lr=2e-5,
         weight_decay=1e-6  # valor comum; ajuste conforme necessário
     )
     
