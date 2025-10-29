@@ -338,7 +338,7 @@ class ModelOH1(ModelBase):
         self.embedding_dim = 128
         self.encoder =ViTEncoder()
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
-        self.decoder = HybridTransformerDecoder()
+        self.decoder = TransformerDecoder()
         self.to(device)
 
     def forward(self, x: torch.Tensor, turnOnQuantization=True) -> torch.Tensor:
