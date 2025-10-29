@@ -100,6 +100,36 @@ def visu2(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 
     return rgb
 
+def visu3(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    """
+    pred_probs: [C, H, W] - logits ou probabilidades por classe
+    labels: [H, W] - mapa de classes
+    Retorna: [3, H, W] - imagem RGB
+              verde -> acerto
+              vermelho -> erro
+              preto -> classe 5 (ignorada)
+    """
+    assert pred_probs.dim() == 3, "Esperado shape [C, H, W]"
+    assert labels.dim() == 2, "Esperado shape [H, W]"
+
+    # Predição da classe (maior probabilidade)
+    labels_pred = torch.argmax(pred_probs, dim=0)
+
+    # Máscaras
+    mask_ignore = labels_pred == 5
+    mask_correct = (labels_pred == labels) & (~mask_ignore)
+    mask_wrong = (labels_pred != labels) & (~mask_ignore)
+
+    # Cria canais RGB
+    red = mask_wrong.float()
+    green = mask_correct.float()
+    blue = torch.zeros_like(red)
+
+    # Combina em [3, H, W]
+    rgb = torch.stack([red, green, blue], dim=0)
+
+    return rgb
+
 def initialProcess(model,valLoader,device):
         model.eval()
         #for i in range(len(valLoader)):
@@ -112,9 +142,10 @@ def initialProcess(model,valLoader,device):
         pt = visu0(x_rec,labels)
         pt0 = visu1(x_rec,labels)
         pt1 = visu2(x_rec,labels)
+        pt2 = visu3(x_rec,labels)
         print('ttt',pt.shape)
         
-        imgs = [x.squeeze(),x_rec,pt1,pt0,pt]
+        imgs = [x.squeeze(),x_rec,pt2,pt1,pt0,pt]
         Viewer.saveListTensorAsImg(imgs,f"RecImagemVal{i}",f"match{i}")
         Viewer.saveTensorAsGIF(imgs,f"RecVideoVal{i}",f"match{i}")
 
