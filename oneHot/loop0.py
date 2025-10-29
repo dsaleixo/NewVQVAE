@@ -148,4 +148,4 @@ if __name__ == "__main__":
         avg_train_loss = total_train_loss
 
         # Scheduler escuta a música do treino
-        scheduler.step(avg_train_loss)
+        #scheduler.step(avg_train_loss)
