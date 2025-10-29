@@ -65,12 +65,21 @@ if __name__ == "__main__":
     num_epochs = 100000000000
     
 
-    optimizer = optim.AdamW(
+    optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=2e-5,
-        weight_decay=1e-6  # valor comum; ajuste conforme necessário
+        lr=3e-3,
+        weight_decay=1e-3
     )
-    
+
+    # Scheduler que reage ao desempenho
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",         # optimizar val_loss menor
+        factor=0.5,         # reduz LR pela metade
+        patience=10,         # espera 4 epochs sem melhora
+        min_lr=1e-6,        # piso de segurança
+        verbose=True        # print quando reduzir
+    )
     weights = compute_class_weights(trainLoader)  # tensor shape (7,)
     print("Pesos das classes:", weights)
 
@@ -84,7 +93,7 @@ if __name__ == "__main__":
     #criterion = nn.CrossEntropyLoss()
     for epoch in range(num_epochs):
         model.train()
-
+        total_train_loss = 0.0
          # [B, C, H, W]
         running_loss = 0.0
         running_perplexity = 0.0
@@ -116,6 +125,7 @@ if __name__ == "__main__":
         # --- Logging ---
         running_loss += loss.item()
         running_perplexity += perplexity.item()
+        total_train_loss += loss.item()
         
         wandb.log({
               
@@ -133,4 +143,9 @@ if __name__ == "__main__":
             f" Loss_focal: {loss_focal.item():.4f}, "
             f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
             f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}"
+            f" LR: {optimizer.param_groups[0]['lr']:.6e}"
         )
+        avg_train_loss = total_train_loss
+
+        # Scheduler escuta a música do treino
+        scheduler.step(avg_train_loss)
