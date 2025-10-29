@@ -80,7 +80,8 @@ if __name__ == "__main__":
     x = x[:7,:,:].unsqueeze(0).to(device)
 
     print(x.shape)
-    criterion = nn.CrossEntropyLoss(weight=weights.to(device))
+    #criterion = nn.CrossEntropyLoss(weight=weights.to(device))
+    criterion = nn.CrossEntropyLoss()
     for epoch in range(num_epochs):
         model.train()
 
