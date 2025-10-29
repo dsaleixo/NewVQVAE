@@ -72,19 +72,33 @@ def visu1(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 
 def visu2(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     """
-    pred_probs: [7, H, W] já normalizado com softmax
-    labels: [H, W] com valores entre 0 e num_classes-1
-    retorna: [H, W] probabilidade atribuída à classe correta em cada pixel
+    pred_probs: [C, H, W] - logits ou probabilidades por classe
+    labels: [H, W] - mapa de classes
+    Retorna: [3, H, W] - imagem RGB
+              verde -> acerto
+              vermelho -> erro
+              preto -> classe 5 (ignorada)
     """
     assert pred_probs.dim() == 3, "Esperado shape [C, H, W]"
     assert labels.dim() == 2, "Esperado shape [H, W]"
-    labels2 = torch.argmax(pred_probs, dim=0)
-    
-    C, H, W = pred_probs.shape
-    probs_truth = pred_probs.permute(1, 2, 0)    # vira [H, W, C]
-   
-    probs_truth = (labels2==labels) * (labels != 5)*1.0
-    return probs_truth.unsqueeze(0).repeat(3, 1, 1)
+
+    # Predição da classe (maior probabilidade)
+    labels_pred = torch.argmax(pred_probs, dim=0)
+
+    # Máscaras
+    mask_ignore = labels == 5
+    mask_correct = (labels_pred == labels) & (~mask_ignore)
+    mask_wrong = (labels_pred != labels) & (~mask_ignore)
+
+    # Cria canais RGB
+    red = mask_wrong.float()
+    green = mask_correct.float()
+    blue = torch.zeros_like(red)
+
+    # Combina em [3, H, W]
+    rgb = torch.stack([red, green, blue], dim=0)
+
+    return rgb
 
 def initialProcess(model,valLoader,device):
         model.eval()
