@@ -119,6 +119,7 @@ if __name__ == "__main__":
         
         # --- Backprop ---
         optimizer.zero_grad()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         loss.backward()
         optimizer.step()
         
