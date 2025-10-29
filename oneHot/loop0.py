@@ -14,6 +14,20 @@ from util.readDatas import ReadDatas
 from torch.nn import functional as F
 
 
+def compute_class_weights(dataloader, num_classes=7):
+    counts = torch.zeros(num_classes)
+
+    for imgs in dataloader:
+        labels = torch.argmax(imgs, dim=1)  # (B,H,W)
+        for c in range(num_classes):
+            counts[c] += (labels == c).sum()
+
+    # peso inversamente proporcional à frequência
+    weights = 1.0 / (counts + 1e-6)
+    weights = weights / weights.sum() * num_classes  # normaliza agradavelmente
+
+    return weights
+
 def initialProcess(model,valLoader,device):
         model.eval()
         #for i in range(len(valLoader)):
@@ -52,14 +66,16 @@ if __name__ == "__main__":
         weight_decay=1e-4  # valor comum; ajuste conforme necessário
     )
     
-    
+    weights = compute_class_weights(trainLoader)  # tensor shape (7,)
+    print("Pesos das classes:", weights)
+
     x = first_batch = valLoader[0]
     print(x.shape)
     initialProcess(model,valLoader,device)
     x = x[:7,:,:].unsqueeze(0).to(device)
 
     print(x.shape)
-    criterion = nn.CrossEntropyLoss()  # pixel a pixel
+    criterion = nn.CrossEntropyLoss(weight=weights.to(device))
     for epoch in range(num_epochs):
         model.train()
 
