@@ -4,8 +4,8 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from modelBase import ModelBase
-from Viewer import Viewer
-from readDatas import ReadDatas
+from util.Viewer import Viewer
+from util.readDatas import ReadDatas
 
 from torch import nn, optim
 

@@ -4,9 +4,9 @@ import torch
 import wandb
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from Viewer import Viewer
+from util.Viewer import Viewer
 from model1 import Model1
-from readDatas import ReadDatas
+from util.readDatas import ReadDatas
 from torch.nn import functional as F
 palette = torch.tensor([
                 [255,255,255],
@@ -46,8 +46,8 @@ def validation(model, val_loader: DataLoader, device='cuda',):
 
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
-            recon_loss = criterion(x_rec, x) 
-            loss = recon_loss + vq_loss
+            recon_loss = F.mse_loss(x_rec, x)
+            loss = recon_loss*10 + vq_loss
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += recon_loss.item()
@@ -74,33 +74,6 @@ def validation(model, val_loader: DataLoader, device='cuda',):
           
         return total_loss_epoch
 
-import torch
-import torch.nn as nn
-
-class FocalLoss(nn.Module):
-    def __init__(self, alpha: float = 1.0, gamma: float = 2.0, reduction: str = "mean"):
-        """
-        Focal Loss adaptada para tarefas de reconstrução (não-classificação).
-        alpha: peso global do termo de perda
-        gamma: controla quanto amplifica o erro em pixels difíceis
-        reduction: 'mean' | 'sum' | 'none'
-        """
-        super().__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # erro quadrático (MSE element-wise)
-        diff = (pred - target).abs()
-        loss = self.alpha * (diff ** (2 - self.gamma)) * (1 - torch.exp(-diff * self.gamma))
-        
-        if self.reduction == "mean":
-            return loss.mean()
-        elif self.reduction == "sum":
-            return loss.sum()
-        else:
-            return loss
 
 
 
@@ -128,7 +101,7 @@ if __name__ == "__main__":
 
     wandb.init(
     project="VQVAE",
-    name = "loop3",
+    name = "loop1",
     #mode ="disabled",
     resume=False,
     config={
@@ -144,7 +117,6 @@ if __name__ == "__main__":
     trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
 
     num_epochs = 100000000000000
-    criterion = FocalLoss(alpha=1.0, gamma=2.0)
     
 
     optimizer = optim.Adam(
@@ -175,8 +147,8 @@ if __name__ == "__main__":
        
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
-           
-            loss = criterion(x_rec, x) + vq_loss
+            recon_loss = F.mse_loss(x_rec, x)
+            loss = recon_loss*10 + vq_loss
             
             # --- Backprop ---
             loss.backward()
@@ -189,13 +161,13 @@ if __name__ == "__main__":
             if batch_idx % 10 == 0:
                 print(
                     f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx}], "
-                    f"Loss: {loss.item():.4f}, Recon: {loss.item():.4f}, "
+                    f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, "
                     f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
                     f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}\n"
                 )
             wandb.log({
               
-                "Train/Recon Loss": loss.item(),
+                "Train/Recon Loss": recon_loss.item(),
                 "Train/Loss": loss.item(),
                 "Train/VQ Loss": vq_loss.item(),
                 "Train/VQ Perplexity": perplexity.item(),

@@ -1,15 +1,64 @@
+import sys
+
+
+sys.path.append("..")
 import torch
 import os
 import wandb
+from util.readDatas import ReadDatas
+
 os.environ["WANDB_API_KEY"] = "e6dd69e5ba37b74ef8d3ef0fa9dd28a33e4eeb6e"
-from readDatas import ReadDatas
+
 
 import numpy as np
 import tempfile
 import imageio
 
-class Viewer():
+class Viewer:
 
+    palette_np = np.array([
+            [255,255,255],
+            [200,200,200],
+            [255,100,10],
+            [255,255,0],
+            [0, 255, 255],
+            [0,0,0],
+            [127,127,127],
+    ])
+
+    palette = torch.tensor(palette_np / 255.0, dtype=torch.float32, device="cuda")
+    
+
+    def onehot_to_image_torch(onehot: torch.Tensor) -> torch.Tensor:
+        """
+        onehot: (14, H, W)
+        palette: (7, 3)
+        
+        Retorna: (6, H, W)
+        """
+   
+
+        # Divide em dois blocos de 7 canais
+        oh1 = onehot[:7, :, :]  # (7, H, W)
+   
+
+        # Índice da classe mais provável
+        idx1 = torch.argmax(oh1, dim=0)  # (H, W)
+        
+
+        # Converte índices para cores usando paleta
+        img1 = Viewer.palette[idx1]  # (H, W, 3)
+       
+
+
+
+        if onehot.shape[0] == 14:
+                oh2 = onehot[7:, :, :]  # (7, H, W)
+                idx2 = torch.argmax(oh2, dim=0)  # (H, W)
+                img2 = Viewer.palette[idx2]  # (H, W, 3)
+                img1= torch.cat([img1, img2], dim=-1)  # (H, W, 6)
+   
+        return img1.permute(2, 0, 1).contiguous()  # (6,H,W)
 
     def saveListTensorAsImg(imgs,name,caption):
         def add_white_grid_torch(
@@ -57,11 +106,17 @@ class Viewer():
                         :, i*cell_size:(i+1)*cell_size, j*cell_size:(j+1)*cell_size
                     ]
             return out
+
+
        
        
        
         outs =[]
         for img in imgs:
+
+            if img.shape[0] == 14 or img.shape[0] == 7:
+                img = Viewer.onehot_to_image_torch(img)
+       
             img = img[:3,:,:]
             grid_img = add_white_grid_torch(img, cell_size=24, gap=2, color=1.0)
             outs.append(grid_img)
@@ -90,72 +145,6 @@ class Viewer():
         },commit=False)
     
  
-    '''
-    def saveTensorListAsGIF(
-    imgs: list[torch.Tensor],
-    name: str,
-    caption: str = "",
-    frame_size: int = 24,
-    fps: int = 10,
-    line_color: tuple[int, int, int] = (255, 0, 0),  # vermelho
-    line_width: int = 2
-) -> None:
-        """
-        Recebe uma lista de grids (C,H,W), fatia cada uma em vídeos (frame_size×frame_size)
-        e concatena os vídeos lado a lado, adicionando linhas vermelhas entre eles.
-        """
-
-        all_videos = []
-
-        # --- fatia cada imagem em uma sequência de frames ---
-        for img in imgs:
-            img = img[:3, :, :]  # mantém só RGB
-            C, H, W = img.shape
-            n_rows = H // frame_size
-            n_cols = W // frame_size
-
-            frames = []
-            for i in range(n_rows):
-                for j in range(n_cols):
-                    y0, y1 = i * frame_size, (i + 1) * frame_size
-                    x0, x1 = j * frame_size, (j + 1) * frame_size
-                    frame = img[:, y0:y1, x0:x1]
-                    if frame.max() <= 1.0:
-                        frame = (frame * 255).clamp(0, 255)
-                    frame_np = frame.permute(1, 2, 0).cpu().detach().numpy().astype('uint8')
-                    frames.append(frame_np)
-            all_videos.append(frames)
-
-        # --- garante mesmo número de frames ---
-        min_len = min(len(v) for v in all_videos)
-        all_videos = [v[:min_len] for v in all_videos]
-
-        # --- cria linha vermelha ---
-        H, W, _ = all_videos[0][0].shape
-        line = np.full((H, line_width, 3), np.array(line_color, dtype=np.uint8))
-
-        # --- concatena lado a lado ---
-        frames_concat = []
-        for t in range(min_len):
-            parts = []
-            for i, video in enumerate(all_videos):
-                parts.append(video[t])
-                if i < len(all_videos) - 1:
-                    parts.append(line)  # adiciona linha vermelha
-            frame_cat = np.concatenate(parts, axis=1)
-            frames_concat.append(frame_cat)
-
-        # --- salva GIF ---
-        with tempfile.NamedTemporaryFile(suffix=".gif", delete=False) as tmpfile:
-            gif_path = tmpfile.name
-        imageio.mimsave(gif_path, frames_concat, fps=fps)
-
-        # --- loga no W&B ---
-        wandb.log({name: wandb.Video(gif_path, fps=fps, format="gif", caption=caption)}, commit=False)
-
-        # --- remove temporário ---
-        os.remove(gif_path)
-        '''
       
     def saveTensorAsGIF(
             imgs: torch.Tensor,
@@ -168,6 +157,8 @@ class Viewer():
             Converte uma imagem grid (C,H,W) em GIF, ordem:
             esquerda → direita, topo → baixo, e loga no W&B.
             """
+            
+ 
 
             line_color: tuple[int, int, int] = (255, 0, 0),  # vermelho
             line_width: int = 2
@@ -175,6 +166,11 @@ class Viewer():
             # pega apenas 3 canais
             all_videos = []
             for img in imgs:
+
+                if img.shape[0] == 14 or img.shape[0] == 7:
+                    img = Viewer.onehot_to_image_torch(img)
+                    print("sahpenew2",img.shape)
+
                 img = img[:3, :, :]
                 C, H, W = img.shape
 
@@ -234,31 +230,30 @@ if __name__ == "__main__":
    
     wandb.init(
     project="VQVAE",
-    name = "Visualição",
+    name = "Organizando2",
+    
     config={
      "test": 1,
-
+        
         }
     )
-  
-   
-    video0 = ReadDatas.readData("./",["resultado.npz"])[0]
-    Viewer.saveTensorAsImg(video0,"controlii","trainImagens")
-    Viewer.saveTensorAsGIF(video0,"control","trainVideo")
+    oh = True
+    video1 = ReadDatas.readData("./",["resultado.npz"])[0]
 
+        
+    
+    Viewer.saveListTensorAsImg([video1],"controlii","trainImagens")
+    Viewer.saveTensorAsGIF([video1],"control","trainVideo")
+     
  
-    videos = ReadDatas.readData("./data/")
-    for i, video in enumerate(videos):
-        Viewer.saveTensorAsImg(video,"train",f"match{i}")
-        Viewer.saveTensorAsGIF(video,"trainV",f"Video{i}")
    
-
-    videos = ReadDatas.readData("./dataValidation/")
+    '''
+    videos = ReadDatasOneHot.readData("./dataValidation/")
     for i, video in enumerate(videos):
         print("val",i)
-        Viewer.saveTensorAsImg(video, "Validation", f"matche{i}")
-        Viewer.saveTensorAsGIF(video,"ValidationV",f"Video{i}")
+        Viewer.saveListTensorAsImg([video], "Validation", f"matche{i}")
+        Viewer.saveTensorAsGIF([video],"ValidationV",f"Video{i}")
 
-  
+    '''
 
     

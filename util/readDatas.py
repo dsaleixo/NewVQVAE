@@ -1,3 +1,7 @@
+import sys
+sys.path.append("../..")
+
+
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -9,6 +13,41 @@ from torch.utils.data import random_split
 
 
 class ReadDatas:
+
+    palette_np = np.array([
+                [255,255,255],
+                [200,200,200],
+                [255,100,10],
+                [255,255,0],
+                [0, 255, 255],
+                [0,0,0],
+                [127,127,127],
+        ])
+    
+    palette = torch.tensor(palette_np / 255.0, dtype=torch.float32, device="cpu")
+
+    def image_to_onehot(img: torch.Tensor) -> torch.Tensor:
+        """
+        img: (H, W, 6) torch tensor
+        palette: (7, 3)
+        retorna: (14, H, W)
+        """
+        assert img.shape[-1] == 6
+
+        img = img.float()
+
+        img1 = img[:, :, :3]  # (H,W,3)
+        img2 = img[:, :, 3:]  # (H,W,3)
+
+        def encode(group):
+            group = group.unsqueeze(2)  # (H,W,1,3)
+            pal = ReadDatas.palette.view(1,1,7,3)
+            dist = torch.norm(group - pal, dim=-1)   # (H,W,7)
+            idx = dist.argmin(dim=-1)   # (H,W)
+            oh = torch.nn.functional.one_hot(idx, 7) # (H,W,7)
+            return oh.permute(2,0,1).float()         # (7,H,W)
+        return torch.cat((encode(img1), encode(img2)), dim=0) # (14,H,W)
+
     def compress(img):
          
         flat = img.reshape(-1, 6)  # cada pixel é um vetor RGB
@@ -67,7 +106,7 @@ class ReadDatas:
             np.savez_compressed(folderOut+arq[:-3]+"npz", indices=indices, values=values, shape=img.shape)
 
 
-    def readData(folder,files=None)->torch.tensor:
+    def readData(folder,files=None,OneHot:bool=False)->torch.tensor:
         folder_path = Path(folder)
         if files ==None:
             files =  [f.name for f in folder_path.iterdir() if f.is_file()]
@@ -86,24 +125,29 @@ class ReadDatas:
             flat = np.zeros((np.prod(shape[:2]), 6), dtype=values.dtype)
             flat[indices] = values
             img = flat.reshape(shape)
-            imgs.append(torch.tensor(img,device="cpu").permute(2,0,1).float())
+            if OneHot:
+                img = torch.from_numpy(img)
+                img = ReadDatas.image_to_onehot(img)  # (14,H,W)
+            else :
+                img =torch.tensor(img,device="cpu").permute(2,0,1).float()
+            imgs.append(img)
             cont+=1
         return imgs
      
 
 
-    def loadDataLoader()->tuple[DataLoader,DataLoader]:
+    def loadDataLoader(OneHot:bool=False)->tuple[DataLoader,DataLoader]:
 
 
-        control = ReadDatas.readData("./",["resultado.npz"])[0]
+        control = ReadDatas.readData("./",["resultado.npz"],OneHot=OneHot)[0]
    
 
     
-        data = ReadDatas.readData("./data/")
+        data = ReadDatas.readData("./data/",OneHot=OneHot)
 
     
 
-        dataValidation = ReadDatas.readData("./dataValidation/")
+        dataValidation = ReadDatas.readData("./dataValidation/",OneHot=OneHot)
         dataValidation.insert(0,control)
         
 
@@ -114,7 +158,7 @@ class ReadDatas:
         train_size = int(0.8 * total_size)  # 80 amostras para treino
         test_size = total_size - train_size  # 20 amostras para teste
         generator = torch.Generator().manual_seed(42)
-
+        print("train_size, test_size",train_size, test_size)
         train_set, test_set = random_split(data, [train_size, test_size], generator=generator)
 
         train_loader = DataLoader(train_set, batch_size=32)
@@ -126,7 +170,7 @@ if __name__ == "__main__":
     #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     #data = ReadDatas.readData('./data/',device)
    #print(len(data),data[0].shape)
-   x,y,z=ReadDatas.loadDataLoader()
+   x,y,z=ReadDatas.loadDataLoader(True)
    print(len(x),len(y),len(z))
 
       

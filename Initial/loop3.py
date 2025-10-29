@@ -4,10 +4,9 @@ import torch
 import wandb
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from Viewer import Viewer
+from util.Viewer import Viewer
 from model1 import Model1
-from modelNoQ import ModelNoQ
-from readDatas import ReadDatas
+from util.readDatas import ReadDatas
 from torch.nn import functional as F
 palette = torch.tensor([
                 [255,255,255],
@@ -38,34 +37,70 @@ def quantize_colors(video: torch.Tensor, ) -> torch.Tensor:
 def validation(model, val_loader: DataLoader, device='cuda',): 
         model.eval()
         total_loss_epoch = 0.0
-        
+        recon_loss_epoch = 0.0
+        perplexity_loss_epoch = 0.0
+        used_codes_loss_epoch = 0.0
+        vq_loss_loss_epoch = 0.0
         for batch in val_loader:
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
 
-            x_rec= model(x)              
+            x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
-            recon_loss = F.mse_loss(x_rec, x)
-            loss = recon_loss*10 
+            recon_loss = criterion(x_rec, x) 
+            loss = recon_loss + vq_loss
 
             total_loss_epoch += loss.item()
-            
+            recon_loss_epoch += recon_loss.item()
+            perplexity_loss_epoch +=perplexity.item()/x.shape[0]
+            used_codes_loss_epoch +=(used_codes.sum().item())/x.shape[0]
+            vq_loss_loss_epoch +=vq_loss.item()
         print(
                  
-                    f"Test  ===>   Loss: {total_loss_epoch:.4f}, "
-               
+                    f"Test  ===>   Loss: {total_loss_epoch:.4f}, Recon: {recon_loss_epoch:.4f}, "
+                    f"VQ Loss: {vq_loss_loss_epoch:.4f}, Perplexity: {perplexity_loss_epoch:.2f}, "
+                    f"Used Codes: {used_codes_loss_epoch}/{model.quantizer.num_embeddings}\n,"
                     
                 )
         wandb.log({
             
-          
+            "Test/Recon Loss": recon_loss_epoch,
             "Test/Loss": total_loss_epoch,
-      
+            "Test/VQ Loss": vq_loss_loss_epoch,
+            "Test/VQ Perplexity": perplexity_loss_epoch,
+            "Test/VQ Used Codes": used_codes_loss_epoch,
             
             
         })
           
         return total_loss_epoch
 
+import torch
+import torch.nn as nn
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha: float = 1.0, gamma: float = 2.0, reduction: str = "mean"):
+        """
+        Focal Loss adaptada para tarefas de reconstrução (não-classificação).
+        alpha: peso global do termo de perda
+        gamma: controla quanto amplifica o erro em pixels difíceis
+        reduction: 'mean' | 'sum' | 'none'
+        """
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # erro quadrático (MSE element-wise)
+        diff = (pred - target).abs()
+        loss = self.alpha * (diff ** (2 - self.gamma)) * (1 - torch.exp(-diff * self.gamma))
+        
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        else:
+            return loss
 
 
 
@@ -75,7 +110,7 @@ def initialProcess(model,valLoader,device):
         #for i in range(len(valLoader)):
         i=0
         x = valLoader[i][:3,:,:].unsqueeze(0).to(device)
-        x_rec = model(x)   
+        x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
         x_rec = x_rec.squeeze()
         x_rec_q = quantize_colors(x_rec)
         imgs = [x.squeeze(),x_rec,x_rec_q]
@@ -93,7 +128,7 @@ if __name__ == "__main__":
 
     wandb.init(
     project="VQVAE",
-    name = "loop2",
+    name = "loop3",
     #mode ="disabled",
     resume=False,
     config={
@@ -105,10 +140,11 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("device)",device)
     palette = palette.to(device)
-    model = ModelNoQ(device)
+    model = Model1(device)
     trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
 
     num_epochs = 100000000000000
+    criterion = FocalLoss(alpha=1.0, gamma=2.0)
     
 
     optimizer = optim.Adam(
@@ -125,7 +161,8 @@ if __name__ == "__main__":
 
     
     
-      
+        running_loss = 0.0
+        running_perplexity = 0.0
 
         for batch_idx, batch in enumerate(trainLoader):
             # Supondo que batch = (x, y, z) ou apenas imagens x
@@ -136,28 +173,33 @@ if __name__ == "__main__":
             
             # --- Forward ---
        
-            x_rec = model(x)              
+            x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
-            recon_loss = F.mse_loss(x_rec, x)
-            loss = recon_loss*10 
+           
+            loss = criterion(x_rec, x) + vq_loss
             
             # --- Backprop ---
             loss.backward()
             optimizer.step()
             
-
+            # --- Logging ---
+            running_loss += loss.item()
+            running_perplexity += perplexity.item()
             
             if batch_idx % 10 == 0:
                 print(
                     f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx}], "
-                    f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, "
-
+                    f"Loss: {loss.item():.4f}, Recon: {loss.item():.4f}, "
+                    f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
+                    f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}\n"
                 )
             wandb.log({
               
-                "Train/Recon Loss": recon_loss.item(),
+                "Train/Recon Loss": loss.item(),
                 "Train/Loss": loss.item(),
-    
+                "Train/VQ Loss": vq_loss.item(),
+                "Train/VQ Perplexity": perplexity.item(),
+                "Train/VQ Used Codes": used_codes.sum().item(),
                 
                 
             })

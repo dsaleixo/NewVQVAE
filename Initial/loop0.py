@@ -3,9 +3,9 @@ import torch
 import wandb
 from torch import nn, optim
 
-from Viewer import Viewer
+from util.Viewer import Viewer
 from model1 import Model1
-from readDatas import ReadDatas
+from util.readDatas import ReadDatas
 from torch.nn import functional as F
 palette = torch.tensor([
                 [255,255,255],

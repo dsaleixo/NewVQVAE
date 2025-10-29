@@ -4,10 +4,9 @@ import torch
 import wandb
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from Viewer import Viewer
-from analysis import Analysis
+from util.Viewer import Viewer
 from model1 import Model1
-from readDatas import ReadDatas
+from util.readDatas import ReadDatas
 from torch.nn import functional as F
 palette = torch.tensor([
                 [255,255,255],
@@ -141,13 +140,13 @@ if __name__ == "__main__":
 
 
     
-    #mode ="disabled",
+
 
 
     wandb.init(
     project="VQVAE",
-    name = "loop5",
-    
+    name = "loop4",
+    #mode ="disabled",
     resume=False,
     config={
      "test": 1,
@@ -170,16 +169,12 @@ if __name__ == "__main__":
     )
     
     
-    model.initializeWeights(0,-1)
+    
     #initialProcess(model,valLoader,device)
     initialProcess(model,valLoader,device)
     bestModelVal = validation(model,testLoader)
-    epochVQturnOn = 70
-    nextEpoch= 30
     for epoch in range(num_epochs):
-        if epoch == epochVQturnOn:
-            model.initializeWeights(-1,5,trainLoader)
-             
+
     
     
         running_loss = 0.0
@@ -187,18 +182,18 @@ if __name__ == "__main__":
 
         for batch_idx, batch in enumerate(trainLoader):
             # Supondo que batch = (x, y, z) ou apenas imagens x
-            #print(batch.shape)
+            print(batch.shape)
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
             model.train()
             optimizer.zero_grad()
             
             # --- Forward ---
        
-            x_rec, vq_loss, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
+            x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
             loss_J =closest_palette_loss(x_rec, x,palette)
-            loss = recon_loss + vq_loss*0.1+loss_J
+            loss = recon_loss + vq_loss+loss_J
             
             # --- Backprop ---
             loss.backward()
@@ -206,7 +201,6 @@ if __name__ == "__main__":
             
             # --- Logging ---
             running_loss += loss.item()
-
             running_perplexity += perplexity.item()
             
             if batch_idx % 10 == 0:
@@ -237,12 +231,6 @@ if __name__ == "__main__":
             wandb.save(f"BestTEstModel{epoch}.pth")
             initialProcess(model,valLoader,device)  
             wandb.log({"Updade":1})
-            if epoch>epochVQturnOn and nextEpoch<epoch:
-                nextEpoch=30+epoch
-                analise = Analysis()
-                analise.analiseCodebook(model,trainLoader,"Train")
-                analise.analiseCodebook(model,testLoader,"Test")
-                analise.analiseCodebookIndividual(model)
         else:
             wandb.log({"Updade":0})
 

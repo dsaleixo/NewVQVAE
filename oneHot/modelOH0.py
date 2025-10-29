@@ -1,11 +1,16 @@
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from setup_env import PROJECT_ROOT
+
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from modelBase import ModelBase
-from Viewer import Viewer
-from readDatas import ReadDatas
+from util.Viewer import Viewer
+from util.readDatas import ReadDatas
 
 from torch import nn, optim
 from sklearn.cluster import MiniBatchKMeans
@@ -28,7 +33,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=128, n_layers=2, n_heads=8):
+    def __init__(self, in_channels=7, img_size=288, patch_size=24, emb_dim=128, n_layers=2, n_heads=8):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
@@ -171,7 +176,7 @@ class VectorQuantizerEMA(nn.Module):
         for batch in dataloader:
             x = batch.to(device)
             #print(x.shape)
-            x= x[:,:3,:,:]
+            x= x[:,:7,:,:]
             z = encoder(x)
             z = z.reshape(-1, self.embedding_dim).cpu()
 
@@ -210,7 +215,7 @@ class VectorQuantizerEMA(nn.Module):
             for i, batch in enumerate(dataloader):
                 x = batch.to(device)
                 #print(x.shape)
-                x= x[:,:3,:,:]
+                x= x[:,:7,:,:]
                 z = encoder(x).reshape(-1, self.embedding_dim).cpu().numpy()
                 kmeans.partial_fit(z)
                 if i % 10 == 0:
@@ -234,7 +239,7 @@ class VectorQuantizerEMA(nn.Module):
         for batch in dataloader:
             x = batch.to(device)
             #print(x.shape)
-            x= x[:,:3,:,:]
+            x= x[:,:7,:,:]
             z = encoder(x).reshape(-1, self.embedding_dim)
             idx = torch.randint(0, self.num_embeddings, (z.size(0),), device=device)
             embed_sum.index_add_(0, idx, z)
@@ -246,7 +251,7 @@ class VectorQuantizerEMA(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, emb_dim: int = 128, img_size: int = 288, patch_size: int = 24, n_layers: int = 2, n_heads: int = 8, out_channels: int = 3):
+    def __init__(self, emb_dim: int = 128, img_size: int = 288, patch_size: int = 24, n_layers: int = 2, n_heads: int = 8, out_channels: int = 7):
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
@@ -273,7 +278,7 @@ class HybridTransformerDecoder(nn.Module):
         patch_size: int = 24,
         n_layers: int = 2,
         n_heads: int = 8,
-        out_channels: int = 3,
+        out_channels: int = 7,
     ):
         super().__init__()
         self.img_size = img_size
@@ -325,7 +330,7 @@ class HybridTransformerDecoder(nn.Module):
         return torch.tanh(x)  # normalizado [-1, 1]
 
 
-class Model1(ModelBase):
+class ModelOH1(ModelBase):
     def __init__(self,device):
         super().__init__()   
         self.device = device
@@ -373,7 +378,7 @@ class Model1(ModelBase):
 
     def prepareInputData(self,x):
         x=x.to(self.device) 
-        x = x[:,:3,:,:]
+        x = x[:,:7,:,:]
         return x
 
     def initializeWeights(self,opEnc:int= -1,opVQ:int=-1,data=None):
@@ -411,8 +416,9 @@ class Model1(ModelBase):
             
 
 def teste0():
-    video0 = ReadDatas.readData("./",["resultado.npz"])[0]
-    video0 = video0[:3,:,:]
+    print("Projeto localizado em:", PROJECT_ROOT)
+    video0 = ReadDatas.readData("./",["resultado.npz"],OneHot=True)[0]
+    video0 = video0[:7,:,:]
     test = video0.unsqueeze(0).float()
     print(video0.shape)
     model =ViTEncoder()
@@ -426,9 +432,9 @@ def teste0():
     print(x_rec.shape)
 
 def teste1():
-    model = Model1()
-    video0 = ReadDatas.readData("./",["resultado.npz"])[0]
-    video0 = video0[:3,:,:]
+    model = ModelOH1()
+    video0 = ReadDatas.readData("./",["resultado.npz"],OneHot=True)[0]
+    video0 = video0[:7,:,:]
     test = video0.unsqueeze(0).float()
     out = model(test)[0]
     print(out.shape)
@@ -445,4 +451,4 @@ def teste1():
 
 
 if __name__ == "__main__":
-    teste3()
+    teste0()

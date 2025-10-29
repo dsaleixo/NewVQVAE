@@ -5,7 +5,7 @@ import wandb
 
 from modelBase import ModelBase
 from model1 import Model1
-from readDatas import ReadDatas
+from util.readDatas import ReadDatas
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
