@@ -266,7 +266,7 @@ class TransformerDecoder(nn.Module):
         tokens = self.transformer(tokens)
         x = self.proj(tokens).view(B, self.img_size // self.patch_size, self.img_size // self.patch_size, self.patch_size, self.patch_size, -1)
         x = x.permute(0, 5, 1, 3, 2, 4).contiguous().view(B, -1, self.img_size, self.img_size)
-        return torch.tanh(x)
+        return x
 
 
 
