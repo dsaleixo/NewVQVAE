@@ -33,7 +33,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=7, img_size=288, patch_size=24, emb_dim=128, n_layers=2, n_heads=8):
+    def __init__(self, in_channels=7, img_size=288, patch_size=24, emb_dim=16, n_layers=1, n_heads=16):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
@@ -251,7 +251,7 @@ class VectorQuantizerEMA(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, emb_dim: int = 128, img_size: int = 288, patch_size: int = 24, n_layers: int = 2, n_heads: int = 8, out_channels: int = 7):
+    def __init__(self, emb_dim: int = 16, img_size: int = 288, patch_size: int = 24, n_layers: int = 1, n_heads: int = 16, out_channels: int = 7):
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
@@ -273,11 +273,11 @@ class TransformerDecoder(nn.Module):
 class HybridTransformerDecoder(nn.Module):
     def __init__(
         self,
-        emb_dim: int = 128,
+        emb_dim: int = 16,
         img_size: int = 288,
         patch_size: int = 24,
         n_layers: int = 2,
-        n_heads: int = 8,
+        n_heads: int = 16,
         out_channels: int = 7,
     ):
         super().__init__()
@@ -337,7 +337,7 @@ class ModelOH1(ModelBase):
         self.num_embeddings = 30
         self.embedding_dim = 128
         self.encoder =ViTEncoder()
-        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
+        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
         self.decoder = HybridTransformerDecoder()
         self.to(device)
 
