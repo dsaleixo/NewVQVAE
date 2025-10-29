@@ -62,8 +62,8 @@ if __name__ == "__main__":
 
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=2e-5,
-        weight_decay=1e-4  # valor comum; ajuste conforme necessário
+        lr=2e-3,
+        weight_decay=1e-6  # valor comum; ajuste conforme necessário
     )
     
     weights = compute_class_weights(trainLoader)  # tensor shape (7,)
