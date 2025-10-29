@@ -46,9 +46,10 @@ if __name__ == "__main__":
     num_epochs = 100000000000
     
 
-    optimizer = optim.Adam(
+    optimizer = optim.AdamW(
         model.parameters(),
-        lr=2e-5
+        lr=2e-5,
+        weight_decay=1e-4  # valor comum; ajuste conforme necessário
     )
     
     
