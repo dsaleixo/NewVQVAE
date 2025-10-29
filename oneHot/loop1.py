@@ -153,7 +153,7 @@ def initialProcess(model,valLoader,device):
 if __name__ == "__main__":
     wandb.init(
         project="VQVAE",
-        name = "X1_OH",
+        name = "X1_OH_l1",
      
         config={
         "test": 1,
