@@ -42,7 +42,7 @@ def prob_truth(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     """
     assert pred_probs.dim() == 3, "Esperado shape [C, H, W]"
     assert labels.dim() == 2, "Esperado shape [H, W]"
-    labels2 = torch.argmax(pred_probs, dim=1).squeeze()
+    labels2 = torch.argmax(pred_probs, dim=0)
     pred_probs = F.softmax(pred_probs)
     C, H, W = pred_probs.shape
     probs_truth = pred_probs.permute(1, 2, 0)    # vira [H, W, C]
