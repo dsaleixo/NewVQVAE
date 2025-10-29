@@ -114,7 +114,7 @@ if __name__ == "__main__":
         # --- Loss ---
         loss_focal = focal_loss(logits, labels, gamma=2.0)*20
         recon_loss =criterion(logits, labels)*10
-        loss = recon_loss +vq_loss+loss_focal
+        loss = recon_loss +vq_loss*0.1+loss_focal
        
         
         # --- Backprop ---
