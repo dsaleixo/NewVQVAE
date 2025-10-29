@@ -14,6 +14,11 @@ from util.readDatas import ReadDatas
 from torch.nn import functional as F
 
 
+
+def focal_loss(logits, labels, gamma=2.0, weight=None):
+    ce = F.cross_entropy(logits, labels, reduction='none', weight=weight)
+    pt = torch.exp(-ce)
+    return ((1 - pt) ** gamma * ce).mean()
 def compute_class_weights(dataloader, num_classes=7):
     counts = torch.zeros(num_classes)
 
@@ -97,8 +102,9 @@ if __name__ == "__main__":
             initialProcess(model,valLoader,device)
        
         # --- Loss ---
-        recon_loss =criterion(logits, labels)*100
-        loss = recon_loss +vq_loss
+        loss_focal = focal_loss(logits, labels, gamma=2.0, weight=weights.to(device))
+        recon_loss =criterion(logits, labels)*10
+        loss = recon_loss +vq_loss+loss_focal
        
         
         # --- Backprop ---
@@ -113,7 +119,7 @@ if __name__ == "__main__":
         wandb.log({
               
                 "Train/Recon Loss": loss.item(),
-         
+                "Train/Recon Loss_focal": loss_focal.item(),
                 "Train/VQ Loss": vq_loss.item(),
                 "Train/VQ Perplexity": perplexity.item(),
                 "Train/VQ Used Codes": used_codes.sum().item(),
@@ -123,6 +129,7 @@ if __name__ == "__main__":
         print(
             f"Epoch [{epoch+1}/{num_epochs}], Batch [{0}], "
             f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, "
+            f" Loss_focal: {loss_focal.item():.4f}, "
             f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
             f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}"
         )
