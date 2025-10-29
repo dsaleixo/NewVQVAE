@@ -80,7 +80,7 @@ if __name__ == "__main__":
             initialProcess(model,valLoader,device)
        
         # --- Loss ---
-        recon_loss =criterion(logits, labels)
+        recon_loss =criterion(logits, labels)*100
         loss = recon_loss +vq_loss
        
         
