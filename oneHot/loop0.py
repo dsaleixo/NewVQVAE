@@ -42,12 +42,14 @@ def prob_truth(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     """
     assert pred_probs.dim() == 3, "Esperado shape [C, H, W]"
     assert labels.dim() == 2, "Esperado shape [H, W]"
+    labels2 = torch.argmax(pred_probs, dim=1).squeeze()
     pred_probs = F.softmax(pred_probs)
     C, H, W = pred_probs.shape
     probs_truth = pred_probs.permute(1, 2, 0)    # vira [H, W, C]
     probs_truth = probs_truth[torch.arange(H).unsqueeze(1),
                               torch.arange(W),
                               labels]
+    probs_truth = probs_truth * (labels2 != 6)
     return probs_truth.unsqueeze(0).repeat(3, 1, 1)
 
 def initialProcess(model,valLoader,device):
