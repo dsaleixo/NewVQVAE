@@ -34,7 +34,7 @@ def compute_class_weights(dataloader, num_classes=7):
     return weights
 
 
-def prob_truth(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+def visu0(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     """
     pred_probs: [7, H, W] já normalizado com softmax
     labels: [H, W] com valores entre 0 e num_classes-1
@@ -52,6 +52,24 @@ def prob_truth(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     probs_truth = probs_truth * (labels2 != 5)
     return probs_truth.unsqueeze(0).repeat(3, 1, 1)
 
+def visu1(pred_probs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    """
+    pred_probs: [7, H, W] já normalizado com softmax
+    labels: [H, W] com valores entre 0 e num_classes-1
+    retorna: [H, W] probabilidade atribuída à classe correta em cada pixel
+    """
+    assert pred_probs.dim() == 3, "Esperado shape [C, H, W]"
+    assert labels.dim() == 2, "Esperado shape [H, W]"
+    labels2 = torch.argmax(pred_probs, dim=0)
+    pred_probs = F.softmax(pred_probs)
+    C, H, W = pred_probs.shape
+    probs_truth = pred_probs.permute(1, 2, 0)    # vira [H, W, C]
+    probs_truth = probs_truth[torch.arange(H).unsqueeze(1),
+                              torch.arange(W),
+                              labels2]
+    probs_truth = probs_truth * (labels2 != 5)
+    return probs_truth.unsqueeze(0).repeat(3, 1, 1)
+
 def initialProcess(model,valLoader,device):
         model.eval()
         #for i in range(len(valLoader)):
@@ -61,10 +79,11 @@ def initialProcess(model,valLoader,device):
         
         x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
         x_rec = x_rec.squeeze()  
-        pt = prob_truth(x_rec,labels)
+        pt = visu0(x_rec,labels)
+        pt0 = visu1(x_rec,labels)
         print('ttt',pt.shape)
         
-        imgs = [x.squeeze(),x_rec,pt]
+        imgs = [x.squeeze(),x_rec,pt0,pt]
         Viewer.saveListTensorAsImg(imgs,f"RecImagemVal{i}",f"match{i}")
         Viewer.saveTensorAsGIF(imgs,f"RecVideoVal{i}",f"match{i}")
 
