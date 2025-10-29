@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=1e-4,
+        lr=1e-5,
         weight_decay=1e-6
     )
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
             initialProcess(model,valLoader,device)
        
         # --- Loss ---
-        loss_focal = focal_loss(logits, labels, gamma=2.0)*20
+        loss_focal = focal_loss(logits, labels, gamma=5.0)*20
         recon_loss =criterion(logits, labels)*10
         loss = recon_loss +vq_loss*0.1+loss_focal
        
