@@ -76,7 +76,7 @@ if __name__ == "__main__":
         optimizer,
         mode="min",         # optimizar val_loss menor
         factor=0.5,         # reduz LR pela metade
-        patience=10,         # espera 4 epochs sem melhora
+        patience=1000,         # espera 4 epochs sem melhora
         min_lr=1e-6,        # piso de segurança
 
     )
