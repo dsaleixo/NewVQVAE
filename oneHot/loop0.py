@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=2e-5,
+        lr=2e-6,
         weight_decay=1e-6  # valor comum; ajuste conforme necessário
     )
     
@@ -80,8 +80,8 @@ if __name__ == "__main__":
     x = x[:7,:,:].unsqueeze(0).to(device)
 
     print(x.shape)
-    #criterion = nn.CrossEntropyLoss(weight=weights.to(device))
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=weights.to(device))
+    #criterion = nn.CrossEntropyLoss()
     for epoch in range(num_epochs):
         model.train()
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
             initialProcess(model,valLoader,device)
        
         # --- Loss ---
-        loss_focal = focal_loss(logits, labels, gamma=2.0)
+        loss_focal = focal_loss(logits, labels, gamma=2.0)*20
         recon_loss =criterion(logits, labels)*10
         loss = recon_loss +vq_loss+loss_focal
        
