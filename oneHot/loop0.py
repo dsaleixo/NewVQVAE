@@ -102,7 +102,7 @@ if __name__ == "__main__":
             initialProcess(model,valLoader,device)
        
         # --- Loss ---
-        loss_focal = focal_loss(logits, labels, gamma=2.0, weight=weights.to(device))
+        loss_focal = focal_loss(logits, labels, gamma=2.0)
         recon_loss =criterion(logits, labels)*10
         loss = recon_loss +vq_loss+loss_focal
        
