@@ -78,7 +78,7 @@ if __name__ == "__main__":
         factor=0.5,         # reduz LR pela metade
         patience=10,         # espera 4 epochs sem melhora
         min_lr=1e-6,        # piso de segurança
-        verbose=True        # print quando reduzir
+
     )
     weights = compute_class_weights(trainLoader)  # tensor shape (7,)
     print("Pesos das classes:", weights)
