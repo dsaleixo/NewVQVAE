@@ -166,7 +166,7 @@ def validation(model, val_loader: DataLoader,criterion, device='cuda',):
             # --- Forward ---
             
 
-            logits, vq_loss, indices, perplexity, used_codes = model(x,False)  
+            logits, vq_loss, indices, perplexity, used_codes = model(x)  
         
             # --- Loss ---
             loss_focal = focal_loss(logits, labels, gamma=5.0)*20
@@ -206,7 +206,7 @@ def validation(model, val_loader: DataLoader,criterion, device='cuda',):
 if __name__ == "__main__":
     wandb.init(
         project="VQVAE",
-        name = "loop2",
+        name = "loop3",
      
         config={
         "test": 1,
