@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 import wandb
 
 from modelBase import ModelBase
-from model1 import Model1
+
 from util.readDatas import ReadDatas
 import torch.nn as nn
 import numpy as np
