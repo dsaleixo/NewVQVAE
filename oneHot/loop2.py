@@ -137,7 +137,7 @@ def initialProcess(model,valLoader,device):
         x = valLoader[i][:7,:,:].unsqueeze(0).to(device)
         labels = torch.argmax(x, dim=1).squeeze()
         
-        x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
+        x_rec, vq_loss, indices, perplexity, used_codes = model(x,False)   
         x_rec = x_rec.squeeze()  
         pt = visu0(x_rec,labels)
         pt0 = visu1(x_rec,labels)
@@ -156,7 +156,7 @@ def validation(model, val_loader: DataLoader,criterion, device='cuda',):
         for batch in val_loader:
             x = batch[:,:7,:,:].to(device)  # [B, C, H, W]
             labels = torch.argmax(x, dim=1)
-            logits= model(x)[0]              
+            logits= model(x,False)[0]              
             # --- Loss ---
             # --- Loss ---
             loss_focal = focal_loss(logits, labels, gamma=5.0)*20
@@ -240,7 +240,7 @@ if __name__ == "__main__":
             # --- Forward ---
             
 
-            logits, vq_loss, indices, perplexity, used_codes = model(x)  
+            logits, vq_loss, indices, perplexity, used_codes = model(x,False)  
         
            
         

@@ -143,9 +143,9 @@ class ReadDatas:
    
 
     
-        #data = ReadDatas.readData("./data/",OneHot=OneHot)
+        data = ReadDatas.readData("./data/",OneHot=OneHot)
 
-        data = ReadDatas.readData("./dataValidation/",OneHot=OneHot)
+        #data = ReadDatas.readData("./dataValidation/",OneHot=OneHot)
 
         dataValidation = ReadDatas.readData("./dataValidation/",OneHot=OneHot)
         dataValidation.insert(0,control)
