@@ -161,7 +161,7 @@ def validation(model, val_loader: DataLoader,criterion, device='cuda',):
             # --- Loss ---
             loss_focal = focal_loss(logits, labels, gamma=5.0)*20
             recon_loss =criterion(logits, labels)*10
-            loss = recon_loss +vq_loss*0.1+loss_focal
+            loss = recon_loss +loss_focal
 
             total_loss_epoch += loss.item()
             
