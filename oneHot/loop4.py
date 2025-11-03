@@ -1,6 +1,6 @@
 import sys, os
 
-from util.analysis import Analysis
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from setup_env import PROJECT_ROOT
 
@@ -14,7 +14,7 @@ from util.Viewer import Viewer
 
 from util.readDatas import ReadDatas
 from torch.nn import functional as F
-
+from util.analysis import Analysis
 
 
 def focal_loss(logits, labels, gamma=2.0, weight=None):
