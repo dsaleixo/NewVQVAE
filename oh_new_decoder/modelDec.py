@@ -578,6 +578,7 @@ def teste1():
     video0 = ReadDatas.readData("./",["resultado.npz"],OneHot=True)[0]
     video0 = video0[:7,:,:]
     test = video0.unsqueeze(0).float()
+    test = test.to(device)
     out = model(test)[0]
     print(out.shape)
     
