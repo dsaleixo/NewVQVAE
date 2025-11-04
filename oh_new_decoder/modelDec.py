@@ -283,7 +283,7 @@ class VectorQuantizerEMA(nn.Module):
         self._embedding_avg.copy_(self._embedding)
         print("✅ Codebook inicializado via EMA sobre o dataset.")
 
-
+'''
 #---------- Decoder temporal que usa um único z_q ----------
 class TemporalDecoderSingleZq(nn.Module):
     def __init__(self, z_dim: int=128, frame_channels: int = 7, frame_size: int = 24, hidden: int = 128):
@@ -329,6 +329,72 @@ class TemporalDecoderSingleZq(nn.Module):
         x = torch.cat([z_feat, x_prev], dim=1)
         x = self.conv_blocks(x)
         return x
+
+'''
+class TemporalDecoderSingleZq(nn.Module):
+    def __init__(self, 
+                 z_dim: int = 128, 
+                 frame_channels: int = 7, 
+                 frame_size: int = 24, 
+                 hidden: int = 512):
+        """
+        Decoder totalmente conectado que usa o mesmo z_q + frame anterior para prever o próximo frame.
+        Args:
+            z_dim: canais do z_q (D)
+            frame_channels: canais do frame (ex: 7)
+            frame_size: tamanho espacial (h == w == frame_size)
+            hidden: tamanho das camadas escondidas
+        """
+        super().__init__()
+        self._z_dim = z_dim
+        self._frame_channels = frame_channels
+        self._frame_size = frame_size
+        self._flat_frame_dim = frame_channels * frame_size * frame_size
+        self._flat_z_dim = z_dim * frame_size * frame_size
+
+        # Projeção de z_q (upsampleado)
+        self.z_proj = nn.Linear(self._flat_z_dim, hidden)
+
+        # MLP com duas camadas escondidas
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden + self._flat_frame_dim, hidden),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden, hidden),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden, self._flat_frame_dim),
+            nn.Sigmoid()  # ou Tanh, dependendo da escala da sua saída
+        )
+
+    def forward(self, z_q: torch.Tensor, x_prev: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            z_q: [B, D, H_z, W_z]   (único z_q usado em todos os frames)
+            x_prev: [B, C, h, w]    (frame anterior)
+        Returns:
+            x_t: [B, C, h, w]       (frame reconstruído)
+        """
+        B = z_q.size(0)
+
+        # Upsample z_q → mesmo tamanho do frame
+        z_up = F.interpolate(z_q, size=(self._frame_size, self._frame_size),
+                             mode="bilinear", align_corners=False)
+        
+        # Achata e projeta
+        z_flat = z_up.view(B, -1)
+        z_feat = self.z_proj(z_flat)
+
+        # Frame anterior achatado
+        x_prev_flat = x_prev.view(B, -1)
+
+        # Concatena z + frame anterior
+        x_in = torch.cat([z_feat, x_prev_flat], dim=1)
+
+        # Passa pela MLP
+        x_out = self.mlp(x_in)
+
+        # Reconstrói o frame [B, C, H, W]
+        x_t = x_out.view(B, self._frame_channels, self._frame_size, self._frame_size)
+        return x_t
 
 
 # ---------- Modelo completo que recebe imagem-grid e usa UM z_q ----------
