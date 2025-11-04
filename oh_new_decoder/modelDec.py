@@ -573,7 +573,8 @@ def teste0():
     out_grid = join_grid(recons, 12, 12)
     print("fim",out_grid.shape)
 def teste1():
-    model = ModelGridTemporalVQVAE()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = ModelGridTemporalVQVAE(device)
     video0 = ReadDatas.readData("./",["resultado.npz"],OneHot=True)[0]
     video0 = video0[:7,:,:]
     test = video0.unsqueeze(0).float()
