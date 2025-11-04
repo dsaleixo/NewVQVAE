@@ -2,7 +2,7 @@
 #SBATCH --job-name=meu_job
 #SBATCH --output=saida.log
 #SBATCH --error=erro.log
-#SBATCH --time=3:15:00
+#SBATCH --time=8:15:00
 #SBATCH --account=aip-lelis
 #SBATCH --gpus=1
 #SBATCH --mem-per-cpu=8G 
@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python oneHot/loop1.py
+python oh_new_decoder/loop1.py
