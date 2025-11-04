@@ -366,25 +366,18 @@ class TemporalDecoderSingleZq(nn.Module):
         )
 
     def forward(self, z_q: torch.Tensor, x_prev: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            z_q: [B, D, H_z, W_z]   (único z_q usado em todos os frames)
-            x_prev: [B, C, h, w]    (frame anterior)
-        Returns:
-            x_t: [B, C, h, w]       (frame reconstruído)
-        """
         B = z_q.size(0)
 
         # Upsample z_q → mesmo tamanho do frame
         z_up = F.interpolate(z_q, size=(self._frame_size, self._frame_size),
-                             mode="bilinear", align_corners=False)
+                            mode="bilinear", align_corners=False)
         
         # Achata e projeta
-        z_flat = z_up.view(B, -1)
+        z_flat = z_up.reshape(B, -1)
         z_feat = self.z_proj(z_flat)
 
         # Frame anterior achatado
-        x_prev_flat = x_prev.view(B, -1)
+        x_prev_flat = x_prev.reshape(B, -1)
 
         # Concatena z + frame anterior
         x_in = torch.cat([z_feat, x_prev_flat], dim=1)
