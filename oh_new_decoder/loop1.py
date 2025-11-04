@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=1e-5,
+        lr=1e-4,
         weight_decay=1e-6
     )
 
