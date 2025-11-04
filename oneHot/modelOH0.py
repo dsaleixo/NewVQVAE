@@ -33,7 +33,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=7, img_size=288, patch_size=24, emb_dim=16, n_layers=3, n_heads=16):
+    def __init__(self, in_channels=7, img_size=288, patch_size=24, emb_dim=128, n_layers=3, n_heads=16):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
@@ -251,7 +251,7 @@ class VectorQuantizerEMA(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, emb_dim: int = 16, img_size: int = 288, patch_size: int = 24, n_layers: int = 3, n_heads: int = 16, out_channels: int = 7):
+    def __init__(self, emb_dim: int = 128, img_size: int = 288, patch_size: int = 24, n_layers: int = 3, n_heads: int = 16, out_channels: int = 7):
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
@@ -270,64 +270,6 @@ class TransformerDecoder(nn.Module):
 
 
 
-class HybridTransformerDecoder(nn.Module):
-    def __init__(
-        self,
-        emb_dim: int = 16,
-        img_size: int = 288,
-        patch_size: int = 24,
-        n_layers: int = 2,
-        n_heads: int = 16,
-        out_channels: int = 7,
-    ):
-        super().__init__()
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.n_patches = (img_size // patch_size) ** 2
-
-        # --- Transformer global ---
-        decoder_layer = nn.TransformerEncoderLayer(
-            d_model=emb_dim, nhead=n_heads, batch_first=True
-        )
-        self.transformer = nn.TransformerEncoder(decoder_layer, num_layers=n_layers)
-
-        # --- Projeção para patch ---
-        self.proj = nn.Linear(emb_dim, patch_size * patch_size * out_channels)
-
-        # --- CNN refinadora para detalhes locais ---
-        self.refiner = nn.Sequential(
-            nn.Conv2d(out_channels, 16, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(True),
-            nn.Conv2d(16, out_channels, kernel_size=3, stride=1, padding=1)
-        )
-
-    def forward(self, z_q: torch.Tensor) -> torch.Tensor:
-        B, D, H, W = z_q.shape
-
-        # --- Flatten para transformer ---
-        tokens = z_q.flatten(2).permute(0, 2, 1)  # [B, N, D]
-        tokens = self.transformer(tokens)         # [B, N, D]
-
-        # --- Reprojetar para patches ---
-        x = self.proj(tokens).view(
-            B,
-            self.img_size // self.patch_size,
-            self.img_size // self.patch_size,
-            self.patch_size,
-            self.patch_size,
-            -1,
-        )  # [B, H_p, W_p, ph, pw, C]
-
-        # --- Rearranjo para imagem completa ---
-        x = x.permute(0, 5, 1, 3, 2, 4).contiguous().view(
-            B, -1, self.img_size, self.img_size
-        )  # [B, C, H, W]
-
-        # --- Refinador CNN ---
-        
-        x = self.refiner(x)
-
-        return torch.tanh(x)  # normalizado [-1, 1]
 
 
 class ModelOH1(ModelBase):
@@ -337,7 +279,7 @@ class ModelOH1(ModelBase):
         self.num_embeddings = 30
         self.embedding_dim = 128
         self.encoder =ViTEncoder()
-        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
+        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
         self.decoder = TransformerDecoder()
         self.to(device)
 
