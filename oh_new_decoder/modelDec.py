@@ -336,7 +336,7 @@ class TemporalDecoderSingleZq(nn.Module):
                  z_dim: int = 128, 
                  frame_channels: int = 7, 
                  frame_size: int = 24, 
-                 hidden: int = 512):
+                 hidden: int = 128):
         """
         Decoder totalmente conectado que usa o mesmo z_q + frame anterior para prever o próximo frame.
         Args:
