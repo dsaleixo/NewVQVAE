@@ -335,6 +335,7 @@ class TemporalDecoderSingleZq(nn.Module):
 class ModelGridTemporalVQVAE(nn.Module):
     def __init__(
         self,
+        device,
         frame_size: int = 24,
     ):
         """
@@ -345,10 +346,12 @@ class ModelGridTemporalVQVAE(nn.Module):
             frame_size: tamanho do frame (assume square)
         """
         super().__init__()
+        self.device = device
         self.encoder = ViTEncoder()
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
         self.decoder = TemporalDecoderSingleZq()
         self._frame_size = frame_size
+        self.to(device)
 
     def forward(
         self,
