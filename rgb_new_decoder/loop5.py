@@ -126,6 +126,40 @@ def validation(model, val_loader: DataLoader, device='cuda',):
         return total_loss_epoch
 
 
+def color_mask(
+    x: torch.Tensor,
+    threshold: float = 0.05,
+) -> torch.Tensor:
+    """
+    x: (B, C, H, W) ou (B, C, T, H, W)
+    Retorna máscara binária de pixels coloridos
+    """
+    # intensidade média por pixel
+    intensity = x.abs().mean(dim=1, keepdim=True)
+    return (intensity > threshold).float()
+
+class ColorFocalLoss(nn.Module):
+    def __init__(
+        self,
+        gamma: float = 2.0,
+        color_weight: float = 25.0,
+        threshold: float = 0.05,
+        eps: float = 1e-8,
+    ):
+        super().__init__()
+        self._gamma = gamma
+        self._color_weight = color_weight
+        self._threshold = threshold
+        self._eps = eps
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        mask_color = color_mask(target, self._threshold)
+
+        error = torch.abs(pred - target)
+        focal = (error + self._eps) ** self._gamma
+
+        loss = focal * mask_color * self._color_weight
+        return loss.mean()
 
 
 
@@ -182,6 +216,7 @@ if __name__ == "__main__":
     bestModelVal = validation(model,testLoader)
     epochVQturnOn = 70
     nextEpoch= 30
+    lossc =ColorFocalLoss(gamma=2.0, color_weight=30.0)
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
             model.initializeWeights(-1,5,trainLoader)
@@ -203,7 +238,7 @@ if __name__ == "__main__":
             x_rec, vq_loss, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)*40
-            loss_J =closest_palette_loss(x_rec, x,palette)*0
+            loss_J = lossc(x_rec,x)
             loss = recon_loss + vq_loss*0.1+loss_J
             
             # --- Backprop ---
