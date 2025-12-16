@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python oneHot/loop4.py
+python python dualDecoder/loop4.py
