@@ -167,10 +167,12 @@ def initialProcess(model,valLoader,device):
 def validation(model, val_loader: DataLoader,criterion, device='cuda',): 
         model.eval()
         total_loss_epoch = 0.0
-        recon_loss_epoch = 0.0
+        recon_loss_epoch1 = 0.0
+        recon_loss_epoch0 = 0.0
         perplexity_loss_epoch = 0.0
         used_codes_loss_epoch = 0.0
-        loss_focal_loss_epoch = 0.0
+        loss_focal_loss_epoch0 = 0.0
+        loss_focal_loss_epoch1 = 0.0
         vq_loss_loss_epoch = 0.0
         for batch in val_loader:
             x = batch[:,:7,:,:].to(device) 
@@ -181,31 +183,39 @@ def validation(model, val_loader: DataLoader,criterion, device='cuda',):
             # --- Forward ---
             
 
-            logits, vq_loss, indices, perplexity, used_codes = model(x)  
+            logits0,logits1, vq_loss, indices, perplexity, used_codes = model(x)  
+    
         
             # --- Loss ---
-            loss_focal = focal_loss(logits, labels, gamma=5.0)*20
-            recon_loss =criterion(logits, labels)*10
-            loss = recon_loss +vq_loss*0.1+loss_focal
+            loss_focal0 = focal_loss(logits0, labels, gamma=5.0)*20
+            recon_loss0 =criterion(logits0, labels)*10
+            loss = recon_loss0 +vq_loss+loss_focal0
 
+            loss_focal1 = focal_loss(logits1, labels, gamma=5.0)*20
+            recon_loss1 =criterion(logits1, labels)*10
+            loss+= recon_loss1 +vq_loss+loss_focal1
 
             total_loss_epoch += loss.item()
-            loss_focal_loss_epoch += loss_focal.item()
-            recon_loss_epoch += recon_loss.item()
+            loss_focal_loss_epoch0 += loss_focal0.item()
+            recon_loss_epoch0 += recon_loss0.item()
+            loss_focal_loss_epoch1 += loss_focal1.item()
+            recon_loss_epoch1 += recon_loss1.item()
             perplexity_loss_epoch +=perplexity.item()/x.shape[0]
             used_codes_loss_epoch +=(used_codes.sum().item())/x.shape[0]
             vq_loss_loss_epoch +=vq_loss.item()
         print(
                  
-                    f"Test  ===>   Loss: {total_loss_epoch:.4f}, Recon: {recon_loss_epoch:.4f}, , Focal: {loss_focal_loss_epoch:.4f}, "
+                    f"Test  ===>   Loss: {total_loss_epoch:.4f}, Recon: {recon_loss_epoch0:.4f}, , Focal: {loss_focal_loss_epoch0:.4f}, "
                     f"VQ Loss: {vq_loss_loss_epoch:.4f}, Perplexity: {perplexity_loss_epoch:.2f}, "
                     f"Used Codes: {used_codes_loss_epoch}/{model.quantizer.num_embeddings}\n,"
                     
                 )
         wandb.log({
             
-            "Test/Recon Loss": recon_loss_epoch,
-            "Test/Focal Loss": loss_focal_loss_epoch,
+            "Test/Recon Loss0": recon_loss_epoch0,
+            "Test/Focal Loss0": loss_focal_loss_epoch0,
+            "Test/Recon Loss1": recon_loss_epoch1,
+            "Test/Focal Loss1": loss_focal_loss_epoch1,
             "Test/Loss": total_loss_epoch,
             "Test/VQ Loss": vq_loss_loss_epoch,
             "Test/VQ Perplexity": perplexity_loss_epoch,
