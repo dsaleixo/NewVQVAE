@@ -202,9 +202,9 @@ if __name__ == "__main__":
        
             x_rec, vq_loss, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
-            #recon_loss = F.mse_loss(x_rec, x)*40
+            recon_loss = F.mse_loss(x_rec, x)*0
             loss_J =closest_palette_loss(x_rec, x,palette)
-            loss = vq_loss*0.1+loss_J
+            loss = recon_loss + vq_loss*0.1+loss_J
             
             # --- Backprop ---
             loss.backward()
