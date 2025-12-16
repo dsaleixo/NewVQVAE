@@ -1,5 +1,10 @@
 
+import sys, os
 
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from setup_env import PROJECT_ROOT
 import torch
 import wandb
 from torch import nn, optim
