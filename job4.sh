@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=meu_job
-#SBATCH --output=saida.log
+#SBATCH --output=saida4.log
 #SBATCH --error=erro.log
 #SBATCH --time=8:15:00
 #SBATCH --account=aip-lelis
@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python python dualDecoder/loop4.py
+python  dualDecoder/loop4.py
