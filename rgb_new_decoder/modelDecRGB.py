@@ -67,7 +67,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=128, n_layers=3, n_heads=16):
+    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=16, n_layers=1, n_heads=16):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
@@ -286,10 +286,10 @@ class VectorQuantizerEMA(nn.Module):
 
 class TemporalDecoderSingleZq(nn.Module):
     def __init__(self, 
-                 z_dim: int = 128, 
+                 z_dim: int = 16, 
                  frame_channels: int = 3, 
                  frame_size: int = 24, 
-                 hidden: int = 128):
+                 hidden: int = 32):
         """
         Decoder totalmente conectado que usa o mesmo z_q + frame anterior para prever o próximo frame.
         Args:
@@ -360,7 +360,7 @@ class ModelGridTemporalVQVAErgb(nn.Module):
         super().__init__()
         self.device = device
         self.encoder = ViTEncoder()
-        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
+        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
         self.decoder = TemporalDecoderSingleZq()
         self._frame_size = frame_size
         self.to(device)
