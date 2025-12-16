@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from dualDecoder.dualDecoder import DualDecoder
+from dualDecoder import DualDecoder
 from setup_env import PROJECT_ROOT
 from oh_new_decoder.modelDec import ModelGridTemporalVQVAE
 from torch.utils.data import DataLoader
