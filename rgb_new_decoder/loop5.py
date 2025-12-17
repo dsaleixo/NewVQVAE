@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     optimizer = optim.Adam(
         model.parameters(),
-        lr=2e-1
+        lr=2e-5
     )
     
     
@@ -209,21 +209,8 @@ if __name__ == "__main__":
        
             x_rec, vq_loss,vq_loss2, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
-            black_thresh = 0.02
 
-            non_black_mask = (
-                x.abs().sum(dim=1, keepdim=True) > black_thresh
-            ).float()
-            w_fg = 100.0   # pixels coloridos
-            w_bg = 1.0    # fundo
-
-            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
-
-            l1 = torch.abs(x_rec - x)
-
-            weighted_l1 = l1 * weight_map
-
-
+            
             recon_loss = F.mse_loss(x_rec, x)
             
             loss = recon_loss + vq_loss*0.1 + vq_loss2*10
