@@ -161,8 +161,8 @@ class ReadDatas:
         print("train_size, test_size",train_size, test_size)
         train_set, test_set = random_split(data, [train_size, test_size], generator=generator)
 
-        train_loader = DataLoader(train_set, batch_size=32)
-        test_loader = DataLoader(test_set, batch_size=32, )
+        train_loader = DataLoader(train_set, batch_size=64
+        test_loader = DataLoader(test_set, batch_size=64 )
         return train_loader,test_loader,dataValidation
       
   
