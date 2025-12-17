@@ -483,7 +483,7 @@ class ModelGridTemporalVQVAErgb(nn.Module):
 
     def prepareInputData(self,x):
         x=x.to(self.device) 
-        x = x[:,:7,:,:]
+        x = x[:,:3,:,:]
         return x
 
     def initializeWeights(self,opEnc:int= -1,opVQ:int=-1,data=None):
