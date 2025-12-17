@@ -97,7 +97,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
          
-            loss = recon_loss + vq_loss
+            loss = recon_loss + vq_loss*0.1
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += recon_loss.item()
@@ -205,7 +205,7 @@ if __name__ == "__main__":
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
             
-            loss = recon_loss + vq_loss
+            loss = recon_loss + vq_loss*0.1
             
             # --- Backprop ---
             loss.backward()
