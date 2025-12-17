@@ -211,20 +211,25 @@ if __name__ == "__main__":
             # --- Loss ---
             black_thresh = 0.02
 
-            non_black_mask = (
-                x.abs().sum(dim=1, keepdim=True) > black_thresh
-            ).float()
-            w_fg = 100.0   # pixels coloridos
-            w_bg = 1.0    # fundo
+            # limpar ruído
+            x_clean = x.clone()
+            x_clean[x_clean.abs() < black_thresh] = 0.0
 
-            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
+            non_black_mask = (
+                x_clean.abs().sum(dim=1, keepdim=True) > 0
+            ).float()
+
+            w_fg = 30.0
 
             l1 = torch.abs(x_rec - x)
 
-            weighted_l1 = l1 * weight_map
+            weighted_l1 = l1 * (w_fg * non_black_mask)
 
+            recon_loss = (
+                weighted_l1.sum() /
+                (non_black_mask.sum().clamp(min=1.0) * x.size(1))
+            )
 
-            recon_loss = weighted_l1.sum() / weight_map.sum().clamp(min=1.0)
             
             loss = recon_loss + vq_loss*0.1 + vq_loss2*10
             
