@@ -210,32 +210,21 @@ if __name__ == "__main__":
             x_rec, vq_loss,vq_loss2, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
             black_thresh = 0.02
-            eps = 1e-6
-
-            # cria máscara de foreground
-            x_clean = x.clone()
-            x_clean[x_clean.abs() < black_thresh] = 0.0
 
             non_black_mask = (
-                x_clean.abs().sum(dim=1, keepdim=True) > 0
-            )
+                x.abs().sum(dim=1, keepdim=True) > black_thresh
+            ).float()
+            w_fg = 100.0   # pixels coloridos
+            w_bg = 1.0    # fundo
 
-            # erro absoluto
+            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
+
             l1 = torch.abs(x_rec - x)
 
-            # remove NaN / Inf do erro
-            l1 = torch.nan_to_num(l1, nan=0.0, posinf=0.0, neginf=0.0)
-
-            # aplica máscara (IMPORTANTE: boolean → float depois)
-            weighted_l1 = l1 * non_black_mask.float()
-
-            # normalização segura
-            num = weighted_l1.sum()
-            den = non_black_mask.sum() * x.size(1)
-
-            recon_loss = num / (den + eps)
+            weighted_l1 = l1 * weight_map
 
 
+            recon_loss = F.mse_loss(x_rec, x)
             
             loss = recon_loss + vq_loss*0.1 + vq_loss2*10
             
