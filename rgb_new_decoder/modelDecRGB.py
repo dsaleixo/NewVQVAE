@@ -436,7 +436,23 @@ class ModelGridTemporalVQVAErgb(nn.Module):
         self.device = device
         self.encoder = ViTEncoder()
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
-        self.decoder = TemporalConvGRUDecoderFiLM()
+        
+
+                # 🔥 NOVO: VQ LOCAL (símbolos / cores)
+        self.vq_out = VectorQuantizerEMA(
+            num_embeddings=16,      # número máximo de estados locais
+            embedding_dim=8         # dimensão simbólica
+        )
+
+        # 🔥 Decoder agora gera embeddings simbólicos
+        self.decoder = TemporalConvGRUDecoderFiLM(
+            z_dim=16,
+            frame_channels=8        # NÃO é RGB, é embedding
+        )
+
+        # Apenas para visualização (opcional)
+        self.to_rgb = nn.Conv2d(8, 3, kernel_size=1)
+
         self._frame_size = frame_size
         self.to(device)
 
@@ -486,25 +502,38 @@ class ModelGridTemporalVQVAErgb(nn.Module):
             # frames_gt tem n_frames elementos
             assert len(frames_gt) == n_frames, f"Esperava {n_frames} frames, recebido {len(frames_gt)}"
 
-        # 4) reconstrução passo a passo usando o mesmo z_q
-        recons: List[torch.Tensor] = []
-        # frame inicial: zeros (pode trocar por frame preto ou outro condicional)
-        x_prev = torch.zeros(B, C, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
+        sym_frames = []
+        q_loss_out_total = 0.0
+
+        x_prev = torch.zeros(
+            B, 8, self._frame_size, self._frame_size,
+            device=img_grid.device
+        )
         h = None
+
         for t in range(n_frames):
-            # se teacher forcing: usa frame real anterior (frames_gt[t-1]) quando t>0
+
             if teacher_forcing and t > 0:
-                x_prev = frames_gt[t - 1]
+                # teacher forcing agora usa embedding quantizado
+                x_prev = sym_frames[-1].detach()
 
-            x_t, h = self.decoder(z_q, x_prev, h)
-            recons.append(x_t)
-            # atualiza x_prev para próxima iteração usando a predição
-            x_prev = x_t.detach()  # detach evita gradientes recorrentes indesejados
+            # 1️⃣ decoder gera embedding contínuo
+            y_t, h = self.decoder(z_q, x_prev, h)
 
+            # 2️⃣ quantização LOCAL (símbolos)
+            y_q, q_loss_out, indices_out, perplexity_out, used_codes_out = self.vq_out(y_t)
+
+            q_loss_out_total = q_loss_out_total + q_loss_out
+
+            sym_frames.append(y_q)
+            x_prev = y_q.detach()
+
+
+        rgb_frames = [self.to_rgb(f) for f in sym_frames]
         # 5) junta grid e retorna
-        out_grid = join_grid(recons, n_rows, n_cols)
+        out_grid = join_grid(rgb_frames, n_rows, n_cols)
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
-        return out_grid, q_loss, indices, perplexity, used_codes
+        return out_grid, q_loss,q_loss_out_total/len(rgb_frames), indices, perplexity, used_codes
 
 
     
@@ -609,8 +638,7 @@ def teste1():
     test = video0.unsqueeze(0).float()
     test = test.to(device)
     out = model(test)[0]
-    out.sum().backward()
-    print(model.encoder.pos_embed.grad.abs().mean())
+    
     print(out.shape)
     
 

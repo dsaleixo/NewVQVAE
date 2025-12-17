@@ -93,11 +93,11 @@ def validation(model, val_loader: DataLoader, device='cuda',):
         for batch in val_loader:
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
 
-            x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
+            x_rec, vq_loss,vq_loss2, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
          
-            loss = recon_loss + vq_loss*0.1
+            loss = recon_loss + vq_loss*0.1 + vq_loss*0.01
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += recon_loss.item()
@@ -201,11 +201,11 @@ if __name__ == "__main__":
             
             # --- Forward ---
        
-            x_rec, vq_loss, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
+            x_rec, vq_loss,vq_loss2, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
             
-            loss = recon_loss + vq_loss*0.1
+            loss = recon_loss + vq_loss*0.1 + vq_loss2*0.01
             
             # --- Backprop ---
             loss.backward()
