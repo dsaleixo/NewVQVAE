@@ -219,7 +219,7 @@ if __name__ == "__main__":
             if batch_idx % 10 == 0:
                 print(
                     f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx}], "
-                    f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, LossJ: {loss_J.item():.4f} "
+                    f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, LossJ: {0.0:.4f} "
                     f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
                     f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}\n"
                 )
