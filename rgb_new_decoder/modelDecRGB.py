@@ -334,6 +334,49 @@ class ConvGRUCell(nn.Module):
         return h
 
 
+class ZFiLM(nn.Module):
+    def __init__(self, z_dim, hidden):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(z_dim, hidden * 2)
+        )
+
+    def forward(self, z_q):
+        gamma, beta = self.net(z_q).chunk(2, dim=1)
+        gamma = gamma.unsqueeze(-1).unsqueeze(-1)
+        beta = beta.unsqueeze(-1).unsqueeze(-1)
+        return gamma, beta
+
+
+class TemporalConvGRUDecoderFiLM(nn.Module):
+    def __init__(self, z_dim=16, frame_channels=3, hidden=48):
+        super().__init__()
+
+        self.gru = ConvGRUCell(
+            in_channels=frame_channels,
+            hidden_channels=hidden
+        )
+
+        self.film = ZFiLM(z_dim, hidden)
+
+        self.out = nn.Sequential(
+            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(hidden, frame_channels, 3, padding=1)
+        )
+
+    def forward(self, z_q, x_prev, h_prev):
+        h = self.gru(x_prev, h_prev)
+
+        # 🔑 Modulação FiLM
+        gamma, beta = self.film(z_q)
+        h = gamma * h + beta
+
+        x_t = self.out(h)
+        return x_t, h
+
 class TemporalConvGRUDecoder(nn.Module):
     def __init__(
         self,
@@ -393,7 +436,7 @@ class ModelGridTemporalVQVAErgb(nn.Module):
         self.device = device
         self.encoder = ViTEncoder()
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
-        self.decoder = TemporalConvGRUDecoder()
+        self.decoder = TemporalConvGRUDecoderFiLM()
         self._frame_size = frame_size
         self.to(device)
 
