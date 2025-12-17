@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     optimizer = optim.Adam(
         model.parameters(),
-        lr=2e-1
+        lr=0.1
     )
     
     
