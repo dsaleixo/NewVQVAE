@@ -259,7 +259,7 @@ class VectorQuantizerEMA(nn.Module):
             for i, batch in enumerate(dataloader):
                 x = batch.to(device)
                 #print(x.shape)
-                x= x[:,:7,:,:]
+                x= x[:,:3:,:]
                 z = encoder(x).reshape(-1, self.embedding_dim).cpu().numpy()
                 kmeans.partial_fit(z)
                 if i % 10 == 0:
@@ -283,7 +283,7 @@ class VectorQuantizerEMA(nn.Module):
         for batch in dataloader:
             x = batch.to(device)
             #print(x.shape)
-            x= x[:,:7,:,:]
+            x= x[:,:3:,:]
             z = encoder(x).reshape(-1, self.embedding_dim)
             idx = torch.randint(0, self.num_embeddings, (z.size(0),), device=device)
             embed_sum.index_add_(0, idx, z)
