@@ -530,7 +530,7 @@ class ModelGridTemporalVQVAErgb(nn.Module):
                 
                 y_q =y_t
 
-            q_loss_out_total = q_loss_out_total + q_loss_out
+          
 
             sym_frames.append(y_q)
             x_prev = y_q.detach()
