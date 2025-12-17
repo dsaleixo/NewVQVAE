@@ -97,7 +97,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
          
-            loss = recon_loss + vq_loss*0.1 + vq_loss*0.01
+            loss = recon_loss + vq_loss*0.1 + vq_loss2*0.01
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += recon_loss.item()
@@ -134,7 +134,7 @@ def initialProcess(model,valLoader,device):
         #for i in range(len(valLoader)):
         i=0
         x = valLoader[i][:3,:,:].unsqueeze(0).to(device)
-        x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
+        x_rec, vq_loss, vq_loss2,indices, perplexity, used_codes = model(x)   
         x_rec = x_rec.squeeze()
         x_rec_q = quantize_colors(x_rec)
         imgs = [x.squeeze(),x_rec,x_rec_q]
