@@ -521,7 +521,14 @@ class ModelGridTemporalVQVAErgb(nn.Module):
             y_t, h = self.decoder(z_q, x_prev, h)
 
             # 2️⃣ quantização LOCAL (símbolos)
-            y_q, q_loss_out, indices_out, perplexity_out, used_codes_out = self.vq_out(y_t)
+            if turnOnQuantization:
+                y_q, q_loss_out, indices_out, perplexity_out, used_codes_out = self.vq_out(y_t)
+
+                q_loss_out_total = q_loss_out_total + q_loss_out
+            else:
+                # ainda não quantiza — apenas passa direto
+                
+                y_q =y_t
 
             q_loss_out_total = q_loss_out_total + q_loss_out
 
