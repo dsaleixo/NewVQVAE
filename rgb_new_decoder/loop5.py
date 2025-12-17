@@ -27,6 +27,9 @@ palette = torch.tensor([
 palette/=255
 
 
+
+
+
 def quantize_colors(video: torch.Tensor, ) -> torch.Tensor:
 
     C, H, W = video.shape
@@ -183,6 +186,9 @@ if __name__ == "__main__":
     epochVQturnOn = 30
     nextEpoch= 10
     
+
+
+
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
             model.initializeWeights(-1,5,trainLoader)
@@ -203,7 +209,22 @@ if __name__ == "__main__":
        
             x_rec, vq_loss,vq_loss2, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
-            recon_loss = F.mse_loss(x_rec, x)
+            black_thresh = 0.02
+
+            non_black_mask = (
+                x.abs().sum(dim=1, keepdim=True) > black_thresh
+            ).float()
+            w_fg = 100.0   # pixels coloridos
+            w_bg = 1.0    # fundo
+
+            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
+
+            l1 = torch.abs(x_rec - x)
+
+            weighted_l1 = l1 * weight_map
+
+
+            recon_loss = weighted_l1.sum() / weight_map.sum().clamp(min=1.0)
             
             loss = recon_loss + vq_loss*0.1 + vq_loss2*10
             
