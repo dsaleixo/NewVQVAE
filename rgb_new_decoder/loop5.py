@@ -212,24 +212,29 @@ if __name__ == "__main__":
             black_thresh = 0.02
             eps = 1e-6
 
-            # remove ruído fraco
+            # cria máscara de foreground
             x_clean = x.clone()
             x_clean[x_clean.abs() < black_thresh] = 0.0
 
             non_black_mask = (
                 x_clean.abs().sum(dim=1, keepdim=True) > 0
-            ).float()
+            )
 
-            w_fg = 30.0
-
+            # erro absoluto
             l1 = torch.abs(x_rec - x)
 
-            weighted_l1 = l1 * (w_fg * non_black_mask)
+            # remove NaN / Inf do erro
+            l1 = torch.nan_to_num(l1, nan=0.0, posinf=0.0, neginf=0.0)
 
+            # aplica máscara (IMPORTANTE: boolean → float depois)
+            weighted_l1 = l1 * non_black_mask.float()
+
+            # normalização segura
             num = weighted_l1.sum()
             den = non_black_mask.sum() * x.size(1)
 
             recon_loss = num / (den + eps)
+
 
             
             loss = recon_loss + vq_loss*0.1 + vq_loss2*10
