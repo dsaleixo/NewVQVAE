@@ -220,7 +220,7 @@ class VectorQuantizerEMA(nn.Module):
         for batch in dataloader:
             x = batch.to(device)
             #print(x.shape)
-            x= x[:,:7,:,:]
+            x= x[:,:3:,:]
             z = encoder(x)
             z = z.reshape(-1, self.embedding_dim).cpu()
 
