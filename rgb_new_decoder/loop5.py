@@ -210,8 +210,9 @@ if __name__ == "__main__":
             x_rec, vq_loss,vq_loss2, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
             black_thresh = 0.02
+            eps = 1e-6
 
-            # limpar ruído
+            # remove ruído fraco
             x_clean = x.clone()
             x_clean[x_clean.abs() < black_thresh] = 0.0
 
@@ -225,10 +226,10 @@ if __name__ == "__main__":
 
             weighted_l1 = l1 * (w_fg * non_black_mask)
 
-            recon_loss = (
-                weighted_l1.sum() /
-                (non_black_mask.sum().clamp(min=1.0) * x.size(1))
-            )
+            num = weighted_l1.sum()
+            den = non_black_mask.sum() * x.size(1)
+
+            recon_loss = num / (den + eps)
 
             
             loss = recon_loss + vq_loss*0.1 + vq_loss2*10
