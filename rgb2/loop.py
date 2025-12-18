@@ -93,7 +93,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
         for batch in val_loader:
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
 
-            x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
+            x_rec, vq_loss, indices, perplexity, used_codes,y = model(x)              
             # --- Loss ---
             black_thresh = 0.02
 
@@ -149,7 +149,7 @@ def initialProcess(model,valLoader,device):
         #for i in range(len(valLoader)):
         i=0
         x = valLoader[i][:3,:,:].unsqueeze(0).to(device)
-        x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
+        x_rec, vq_loss, indices, perplexity, used_codes,y = model(x)   
         x_rec = x_rec.squeeze()
         x_rec_q = quantize_colors(x_rec)
         imgs = [x.squeeze(),x_rec,x_rec_q]
