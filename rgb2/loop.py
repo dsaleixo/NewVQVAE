@@ -101,7 +101,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += recon_loss.item()
-            J_loss_epoch += loss_J.item()
+            J_loss_epoch += loss_J
             perplexity_loss_epoch +=perplexity.item()/x.shape[0]
             used_codes_loss_epoch +=(used_codes.sum().item())/x.shape[0]
             vq_loss_loss_epoch +=vq_loss.item()
