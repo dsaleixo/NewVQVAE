@@ -22,7 +22,7 @@ from newRGB.newRGBModel import RGBVQVAE
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("device)",device)
 
-model = RGBVQVAE(z_dim=128).to(device)
+model = RGBVQVAE(device,z_dim=128)
 trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
 
 optimizer = optim.Adam(
