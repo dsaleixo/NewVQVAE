@@ -391,7 +391,7 @@ class RGB(nn.Module):
         self.device = device
         self.encoder = ViTEncoder()
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
-        self.decoder = TemporalDecoderSingleZq()
+        self.decoder = TemporalConvGRUDecoder()
         self._frame_size = frame_size
         self.to(device)
 
