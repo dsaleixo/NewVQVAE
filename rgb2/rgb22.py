@@ -451,7 +451,7 @@ class RGB(nn.Module):
             if teacher_forcing and t > 0:
                 x_prev = frames_gt[t - 1]
             if self.training:
-                x_prev = x_prev + 0.5 * torch.randn_like(x_prev)
+                x_prev = x_prev + 0 * torch.randn_like(x_prev)
             x_t, h = self.decoder(z_q, x_prev, h)
             recons.append(x_t)
 
