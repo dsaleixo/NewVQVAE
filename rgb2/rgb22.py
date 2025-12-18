@@ -289,63 +289,88 @@ class VectorQuantizerEMA(nn.Module):
         print("✅ Codebook inicializado via EMA sobre o dataset.")
 
 
-class TemporalDecoderSingleZq(nn.Module):
-    def __init__(self, 
-                 z_dim: int = 128, 
-                 frame_channels: int = 3, 
-                 frame_size: int = 24, 
-                 hidden: int = 128):
-        """
-        Decoder totalmente conectado que usa o mesmo z_q + frame anterior para prever o próximo frame.
-        Args:
-            z_dim: canais do z_q (D)
-            frame_channels: canais do frame (ex: 7)
-            frame_size: tamanho espacial (h == w == frame_size)
-            hidden: tamanho das camadas escondidas
-        """
+class ConvGRUCell(nn.Module):
+    def __init__(self, in_channels, hidden_channels, kernel_size=3):
         super().__init__()
-        self._z_dim = z_dim
-        self._frame_channels = frame_channels
-        self._frame_size = frame_size
-        self._flat_frame_dim = frame_channels * frame_size * frame_size
-        self._flat_z_dim = z_dim * frame_size * frame_size
+        padding = kernel_size // 2
 
-        # Projeção de z_q (upsampleado)
-        self.z_proj = nn.Linear(self._flat_z_dim, hidden)
-
-        # MLP com duas camadas escondidas
-        self.mlp = nn.Sequential(
-            nn.Linear(hidden + self._flat_frame_dim, hidden),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden, hidden),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden, self._flat_frame_dim),
-            nn.Sigmoid()  # ou Tanh, dependendo da escala da sua saída
+        self.conv_zr = nn.Conv2d(
+            in_channels + hidden_channels,
+            2 * hidden_channels,
+            kernel_size,
+            padding=padding
+        )
+        self.conv_h = nn.Conv2d(
+            in_channels + hidden_channels,
+            hidden_channels,
+            kernel_size,
+            padding=padding
         )
 
-    def forward(self, z_q: torch.Tensor, x_prev: torch.Tensor) -> torch.Tensor:
-        B = z_q.size(0)
+    def forward(self, x, h_prev):
+        if h_prev is None:
+            h_prev = torch.zeros(
+                x.size(0),
+                self.conv_h.out_channels,
+                x.size(2),
+                x.size(3),
+                device=x.device,
+                dtype=x.dtype
+            )
 
-        # Upsample z_q → mesmo tamanho do frame
-        z_up = F.interpolate(z_q, size=(self._frame_size, self._frame_size),
-                            mode="bilinear", align_corners=False)
-        
-        # Achata e projeta
-        z_flat = z_up.reshape(B, -1)
-        z_feat = self.z_proj(z_flat)
+        combined = torch.cat([x, h_prev], dim=1)
+        z, r = self.conv_zr(combined).chunk(2, dim=1)
+        z, r = torch.sigmoid(z), torch.sigmoid(r)
 
-        # Frame anterior achatado
-        x_prev_flat = x_prev.reshape(B, -1)
+        combined_r = torch.cat([x, r * h_prev], dim=1)
+        h_tilde = torch.tanh(self.conv_h(combined_r))
 
-        # Concatena z + frame anterior
-        x_in = torch.cat([z_feat, x_prev_flat], dim=1)
+        h = (1 - z) * h_prev + z * h_tilde
+        return h
 
-        # Passa pela MLP
-        x_out = self.mlp(x_in)
 
-        # Reconstrói o frame [B, C, H, W]
-        x_t = x_out.view(B, self._frame_channels, self._frame_size, self._frame_size)
-        return x_t
+
+class TemporalConvGRUDecoder(nn.Module):
+    def __init__(
+        self,
+        z_dim=16,
+        frame_channels=3,
+        hidden=64,
+        frame_size=24
+    ):
+        super().__init__()
+
+        self.z_proj = nn.Conv2d(z_dim, hidden, kernel_size=1)
+
+        self.gru = ConvGRUCell(
+            in_channels=frame_channels + hidden,
+            hidden_channels=hidden
+        )
+
+        self.out = nn.Sequential(
+            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(hidden, frame_channels, 3, padding=1)
+        )
+
+    def forward(self, z_q, x_prev, h_prev):
+        # z_q: [B, D, H_z, W_z]
+        z_up = F.interpolate(
+            z_q,
+            size=x_prev.shape[-2:],
+            mode="bilinear",
+            align_corners=False
+        )
+
+        z_feat = self.z_proj(z_up)
+        x_in = torch.cat([x_prev, z_feat], dim=1)
+
+        h = self.gru(x_in, h_prev)
+        x_t = self.out(h)
+
+        return x_t, h
+
+
 
 
 # ---------- Modelo completo que recebe imagem-grid e usa UM z_q ----------
@@ -420,16 +445,15 @@ class RGB(nn.Module):
         recons: List[torch.Tensor] = []
         # frame inicial: zeros (pode trocar por frame preto ou outro condicional)
         x_prev = torch.zeros(B, C, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
-
+        h = None
         for t in range(n_frames):
-            # se teacher forcing: usa frame real anterior (frames_gt[t-1]) quando t>0
             if teacher_forcing and t > 0:
                 x_prev = frames_gt[t - 1]
 
-            x_t = self.decoder(z_q, x_prev)  # usa o mesmo z_q em cada passo
+            x_t, h = self.decoder(z_q, x_prev, h)
             recons.append(x_t)
-            # atualiza x_prev para próxima iteração usando a predição
-            x_prev = x_t.detach()  # detach evita gradientes recorrentes indesejados
+
+            x_prev = x_t.detach()
 
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
