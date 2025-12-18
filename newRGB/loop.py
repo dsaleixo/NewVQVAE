@@ -77,7 +77,7 @@ for epoch in range(num_epochs):
             )
 
     # médias por época
-    n = len(loader)
+    n = len(trainLoader)
     print(
         f"\n== Epoch {epoch} Summary ==\n"
         f"Loss: {running['loss']/n:.4f}\n"
