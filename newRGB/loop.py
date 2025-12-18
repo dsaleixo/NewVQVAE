@@ -21,7 +21,7 @@ from newRGB.newRGBModel import RGBVQVAE
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("device)",device)
-palette = palette.to(device)
+
 model = RGBVQVAE(z_dim=128).to(device)
 trainLoader,testLoader,valLoader=ReadDatas.loadDataLoader()
 
