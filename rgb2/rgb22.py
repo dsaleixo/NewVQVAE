@@ -491,6 +491,11 @@ class RGB(nn.Module):
                 x_t,
                 hard=not self.training
             )
+            if not torch.isfinite(y).all():
+                print("❌ y contém NaN ou Inf")
+                print("y min:", y.min().item())
+                print("y max:", y.max().item())
+                raise RuntimeError("NaN em y")
             ys.append(y)
             # Constrói RGB a partir do codebook
             x_t = torch.einsum(
@@ -498,7 +503,9 @@ class RGB(nn.Module):
                 y,
                 self.pixel_codebook
 )
-
+            if not torch.isfinite(x_t).all():
+                print("❌ x_t contém NaN ou Inf")
+                raise RuntimeError("NaN em x_t")
 
 
             recons.append(x_t)
