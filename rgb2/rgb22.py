@@ -75,6 +75,7 @@ class ViTEncoder(nn.Module):
         self.patch_size = patch_size
         self.emb_dim = emb_dim
         self.img_size = img_size
+        self.n_patches = (img_size // patch_size) ** 2
         self.pos_embed = nn.Parameter(
             torch.zeros(1, self.n_patches, emb_dim)
         )
