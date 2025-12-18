@@ -95,12 +95,27 @@ def validation(model, val_loader: DataLoader, device='cuda',):
 
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
             # --- Loss ---
-            recon_loss = F.mse_loss(x_rec, x)
+            black_thresh = 0.02
+
+            non_black_mask = (
+                x.abs().sum(dim=1, keepdim=True) > black_thresh
+            ).float()
+
+            w_fg = 10.0   # pixels coloridos
+            w_bg = 1.0    # fundo
+
+            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
+            l1 = torch.abs(x_rec - x)
+
+            weighted_l1 = l1 * weight_map
+
+            loss_recon = weighted_l1.sum() / weight_map.sum().clamp(min=1.0)
+
             loss_J =0
-            loss = recon_loss + vq_loss
+            loss = loss_recon + vq_loss
 
             total_loss_epoch += loss.item()
-            recon_loss_epoch += recon_loss.item()
+            recon_loss_epoch += loss_recon.item()
             J_loss_epoch += loss_J
             perplexity_loss_epoch +=perplexity.item()/x.shape[0]
             used_codes_loss_epoch +=(used_codes.sum().item())/x.shape[0]
@@ -201,12 +216,29 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             
             # --- Forward ---
-       
+            
             x_rec, vq_loss, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
-            recon_loss = F.mse_loss(x_rec, x)
+            #recon_loss = F.mse_loss(x_rec, x)
+
+
+            black_thresh = 0.02
+
+            non_black_mask = (
+                x.abs().sum(dim=1, keepdim=True) > black_thresh
+            ).float()
+
+            w_fg = 10.0   # pixels coloridos
+            w_bg = 1.0    # fundo
+
+            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
+            l1 = torch.abs(x_rec - x)
+
+            weighted_l1 = l1 * weight_map
+
+            loss_recon = weighted_l1.sum() / weight_map.sum().clamp(min=1.0)
             loss_J = 0
-            loss = recon_loss + vq_loss*0.01
+            loss = loss_recon + vq_loss*0.01
             
             # --- Backprop ---
             loss.backward()
@@ -220,13 +252,13 @@ if __name__ == "__main__":
             if batch_idx % 10 == 0:
                 print(
                     f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx}], "
-                    f"Loss: {loss.item():.4f}, Recon: {recon_loss.item():.4f}, LossJ: {loss_J:.4f} "
+                    f"Loss: {loss.item():.4f}, Recon: {loss_recon.item():.4f}, LossJ: {loss_J:.4f} "
                     f"VQ Loss: {vq_loss.item():.4f}, Perplexity: {perplexity.item():.2f}, "
                     f"Used Codes: {used_codes.sum().item()}/{model.quantizer.num_embeddings}\n"
                 )
             wandb.log({
               
-                "Train/Recon Loss": recon_loss.item(),
+                "Train/Recon Loss": loss_recon.item(),
                  "Train/loosJ": loss_J,
                 "Train/Loss": loss.item(),
                 "Train/VQ Loss": vq_loss.item(),
