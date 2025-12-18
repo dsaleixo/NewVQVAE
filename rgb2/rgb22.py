@@ -333,7 +333,7 @@ class ConvGRUCell(nn.Module):
 class TemporalConvGRUDecoder(nn.Module):
     def __init__(
         self,
-        z_dim=16,
+        z_dim=128,
         frame_channels=3,
         hidden=64,
         frame_size=24
