@@ -130,6 +130,27 @@ def validation(model, val_loader: DataLoader, device='cuda',):
 
 
 
+def foreground_mse_loss(x_rec, x, black_thresh=0.02, w_fg=20.0):
+    """
+    x_rec, x: [B, C, H, W]
+    """
+    # energia por pixel (soma canais)
+    pixel_energy = x.abs().sum(dim=1, keepdim=True)
+
+    # peso contínuo ∈ [0,1]
+    fg_weight = torch.clamp(pixel_energy / black_thresh, 0.0, 1.0)
+
+    # fundo ≈ 0, evento ≈ w_fg
+    weight_map = fg_weight * w_fg
+
+    # erro quadrático
+    mse = (x_rec - x) ** 2
+
+    # aplica pesos
+    weighted_mse = mse * weight_map
+
+    # média global (NUNCA divide por máscara)
+    return weighted_mse.mean()
 
 
 def initialProcess(model,valLoader,device):
@@ -211,9 +232,9 @@ if __name__ == "__main__":
             # --- Loss ---
 
             
-            recon_loss = F.mse_loss(x_rec, x)
+            recon_loss = foreground_mse_loss(x_rec, x)
             
-            loss = recon_loss + vq_loss*0.1 + vq_loss2*10
+            loss = recon_loss + vq_loss*0.1 + vq_loss2
             
             # --- Backprop ---
             loss.backward()
