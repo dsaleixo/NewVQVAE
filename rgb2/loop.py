@@ -205,7 +205,7 @@ if __name__ == "__main__":
             # --- Loss ---
             recon_loss = F.mse_loss(x_rec, x)
             loss_J = 0
-            loss = recon_loss + vq_loss*0.1
+            loss = recon_loss + vq_loss
             
             # --- Backprop ---
             loss.backward()
