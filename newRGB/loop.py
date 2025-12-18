@@ -45,7 +45,7 @@ for epoch in range(num_epochs):
 
     for i, grid in enumerate(trainLoader):
         grid = grid.to(device)
-
+        grid = grid[:,:3,:,:]
         out = model(grid)
         loss = out["loss"]
 
