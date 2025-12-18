@@ -173,10 +173,11 @@ if __name__ == "__main__":
     num_epochs = 100000000000000
     
 
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=0.01
-    )
+    optimizer = Adam([
+    {"params": model.encoder.parameters(), "lr": 0.1},
+    {"params": model.quantizer.parameters(), "lr": 0.1},
+    {"params": model.decoder.parameters(), "lr": 0.01},
+])
     
     
     model.initializeWeights(0,-1)
