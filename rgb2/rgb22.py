@@ -515,7 +515,9 @@ class RGB(nn.Module):
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
-        return out_grid, q_loss, indices, perplexity, used_codes,torch.stack(ys, dim=1)
+
+        y_all = torch.stack(ys, dim=1) if self.training else None
+        return out_grid, q_loss, indices, perplexity, used_codes,y_all
 
 
     

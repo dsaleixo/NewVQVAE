@@ -145,7 +145,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
 
 
 def initialProcess(model,valLoader,device):
-        return
+        
         model.eval()
         #for i in range(len(valLoader)):
         i=0
