@@ -327,98 +327,7 @@ class ConvGRUCell(nn.Module):
 
         h = (1 - z) * h_prev + z * h_tilde
         return h
-class FiLM(nn.Module):
-    def __init__(self, cond_dim, feat_dim):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(cond_dim, feat_dim * 2, kernel_size=1)
-        )
 
-    def forward(self, cond, x):
-        gamma, beta = self.net(cond).chunk(2, dim=1)
-        return gamma * x + beta
-class FiLMConvGRUCell(nn.Module):
-    def __init__(self, in_channels, hidden_channels, z_dim):
-        super().__init__()
-        self.hidden_channels = hidden_channels
-
-        self.conv_zr = nn.Conv2d(
-            in_channels + hidden_channels,
-            2 * hidden_channels,
-            kernel_size=3,
-            padding=1
-        )
-
-        self.conv_h = nn.Conv2d(
-            in_channels + hidden_channels,
-            hidden_channels,
-            kernel_size=3,
-            padding=1
-        )
-
-        # FiLMs
-        self.film_in = FiLM(z_dim, in_channels)
-        self.film_h  = FiLM(z_dim, hidden_channels)
-
-    def forward(self, x, h_prev, z_q):
-        if h_prev is None:
-            h_prev = torch.zeros(
-                x.size(0), self.hidden_channels,
-                x.size(2), x.size(3),
-                device=x.device
-            )
-
-        # 🔥 FiLM no input
-        x = self.film_in(z_q, x)
-
-        combined = torch.cat([x, h_prev], dim=1)
-        z, r = self.conv_zr(combined).chunk(2, dim=1)
-        z, r = torch.sigmoid(z), torch.sigmoid(r)
-
-        combined_r = torch.cat([x, r * h_prev], dim=1)
-        h_tilde = torch.tanh(self.conv_h(combined_r))
-
-        h = (1 - z) * h_prev + z * h_tilde
-
-        # 🔥 FiLM no hidden
-        h = self.film_h(z_q, h)
-
-        return h
-class TemporalConvGRUDecoderFiLM(nn.Module):
-    def __init__(
-        self,
-        z_dim=128,
-        frame_channels=3,
-        hidden=32
-    ):
-        super().__init__()
-
-        self.z_proj = nn.Conv2d(z_dim, z_dim, kernel_size=1)
-
-        self.gru = FiLMConvGRUCell(
-            in_channels=frame_channels,
-            hidden_channels=hidden,
-            z_dim=z_dim
-        )
-
-        self.film_out = FiLM(z_dim, hidden)
-
-        self.out = nn.Sequential(
-            nn.Conv2d(hidden, hidden, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, frame_channels, 3, padding=1)
-        )
-
-    def forward(self, z_q, x_prev, h_prev):
-        z_q = self.z_proj(
-            F.interpolate(z_q, size=x_prev.shape[-2:], mode="nearest")
-        )
-
-        h = self.gru(x_prev, h_prev, z_q)
-        h = self.film_out(z_q, h)
-
-        x_t = self.out(h)
-        return x_t, h
 
 
 class TemporalConvGRUDecoder(nn.Module):
@@ -482,7 +391,7 @@ class RGB(nn.Module):
         self.device = device
         self.encoder = ViTEncoder()
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
-        self.decoder = TemporalConvGRUDecoderFiLM()
+        self.decoder = TemporalConvGRUDecoder()
         self._frame_size = frame_size
         self.to(device)
 
@@ -541,8 +450,7 @@ class RGB(nn.Module):
         for t in range(n_frames):
             if teacher_forcing and t > 0:
                 x_prev = frames_gt[t - 1]
-            if self.training:
-                x_prev = x_prev + 0 * torch.randn_like(x_prev)
+           
             x_t, h = self.decoder(z_q, x_prev, h)
             recons.append(x_t)
 
