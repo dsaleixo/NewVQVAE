@@ -234,7 +234,7 @@ if __name__ == "__main__":
             
             recon_loss = foreground_mse_loss(x_rec, x)
             
-            loss = recon_loss + vq_loss*0.1 + vq_loss2
+            loss = recon_loss*100 + vq_loss*0.1 + vq_loss2
             
             # --- Backprop ---
             loss.backward()
