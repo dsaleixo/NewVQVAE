@@ -75,9 +75,13 @@ class ViTEncoder(nn.Module):
         self.patch_size = patch_size
         self.emb_dim = emb_dim
         self.img_size = img_size
-
+        self.pos_embed = nn.Parameter(
+            torch.zeros(1, self.n_patches, emb_dim)
+        )
+        nn.init.trunc_normal_(self.pos_embed, std=0.02)
     def forward(self, x):
         x = self.patch_embed(x)
+        x = x + self.pos_embed  
         x = self.transformer(x)
         B, N, D = x.shape
         H_out = W_out = self.img_size // self.patch_size
