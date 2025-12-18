@@ -225,7 +225,7 @@ if __name__ == "__main__":
             wandb.log({
               
                 "Train/Recon Loss": recon_loss.item(),
-                 "Train/loosJ": loss_J.item(),
+                 "Train/loosJ": loss_J,
                 "Train/Loss": loss.item(),
                 "Train/VQ Loss": vq_loss.item(),
                 "Train/VQ Perplexity": perplexity.item(),
