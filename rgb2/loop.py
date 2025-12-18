@@ -170,9 +170,10 @@ if __name__ == "__main__":
     num_epochs = 100000000000000
     
 
-    optimizer = optim.Adam(
+    optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=5
+        lr=1e-4,
+        weight_decay=1e-6
     )
     
     
