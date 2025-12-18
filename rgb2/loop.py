@@ -9,7 +9,7 @@ import torch
 import wandb
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from rgb2.rgb2 import RGB
+from rgb2.rgb22 import RGB
 from util.Viewer import Viewer
 from util.analysis import Analysis
 
