@@ -419,6 +419,7 @@ class RGB(nn.Module):
 
         # 1) Encoder na imagem inteira -> um único z (mapa 2D)
         z = self.encoder(img_grid)  # espera [B, D, H_z, W_z]
+        z = F.avg_pool2d(z, kernel_size=2)  # 12x12 → 6x6
         # 2) Quantize (single z_q)
         if turnOnQuantization:
             z_q, q_loss, indices, perplexity, used_codes = self.quantizer(z)
