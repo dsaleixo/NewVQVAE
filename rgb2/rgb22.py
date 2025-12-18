@@ -335,7 +335,7 @@ class TemporalConvGRUDecoder(nn.Module):
         self,
         z_dim=128,
         frame_channels=3,
-        hidden=64,
+        hidden=16,
         frame_size=24
     ):
         super().__init__()
