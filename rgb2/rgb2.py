@@ -67,27 +67,17 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=16, n_layers=1, n_heads=16):
+    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=128, n_layers=3, n_heads=16):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
-        self.n_patches = (img_size // patch_size) ** 2
-        # ✅ Positional embedding aprendível
-        self.pos_embed = nn.Parameter(
-            torch.zeros(1, self.n_patches, emb_dim)
-        )
-
-
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
         self.patch_size = patch_size
         self.emb_dim = emb_dim
         self.img_size = img_size
-        # Inicialização leve (boa prática)
-        nn.init.trunc_normal_(self.pos_embed, std=0.02)
 
     def forward(self, x):
         x = self.patch_embed(x)
-        x = x + self.pos_embed   
         x = self.transformer(x)
         B, N, D = x.shape
         H_out = W_out = self.img_size // self.patch_size
@@ -220,7 +210,7 @@ class VectorQuantizerEMA(nn.Module):
         for batch in dataloader:
             x = batch.to(device)
             #print(x.shape)
-            x= x[:,:3:,:]
+            x= x[:,:3,:,:]
             z = encoder(x)
             z = z.reshape(-1, self.embedding_dim).cpu()
 
@@ -259,7 +249,7 @@ class VectorQuantizerEMA(nn.Module):
             for i, batch in enumerate(dataloader):
                 x = batch.to(device)
                 #print(x.shape)
-                x= x[:,:3:,:]
+                x= x[:,:3,:,:]
                 z = encoder(x).reshape(-1, self.embedding_dim).cpu().numpy()
                 kmeans.partial_fit(z)
                 if i % 10 == 0:
@@ -283,7 +273,7 @@ class VectorQuantizerEMA(nn.Module):
         for batch in dataloader:
             x = batch.to(device)
             #print(x.shape)
-            x= x[:,:3:,:]
+            x= x[:,:3,:,:]
             z = encoder(x).reshape(-1, self.embedding_dim)
             idx = torch.randint(0, self.num_embeddings, (z.size(0),), device=device)
             embed_sum.index_add_(0, idx, z)
@@ -294,132 +284,67 @@ class VectorQuantizerEMA(nn.Module):
         print("✅ Codebook inicializado via EMA sobre o dataset.")
 
 
-class ConvGRUCell(nn.Module):
-    def __init__(self, in_channels, hidden_channels, kernel_size=3):
+class TemporalDecoderSingleZq(nn.Module):
+    def __init__(self, 
+                 z_dim: int = 128, 
+                 frame_channels: int = 3, 
+                 frame_size: int = 24, 
+                 hidden: int = 128):
+        """
+        Decoder totalmente conectado que usa o mesmo z_q + frame anterior para prever o próximo frame.
+        Args:
+            z_dim: canais do z_q (D)
+            frame_channels: canais do frame (ex: 7)
+            frame_size: tamanho espacial (h == w == frame_size)
+            hidden: tamanho das camadas escondidas
+        """
         super().__init__()
-        padding = kernel_size // 2
+        self._z_dim = z_dim
+        self._frame_channels = frame_channels
+        self._frame_size = frame_size
+        self._flat_frame_dim = frame_channels * frame_size * frame_size
+        self._flat_z_dim = z_dim * frame_size * frame_size
 
-        self.conv_zr = nn.Conv2d(
-            in_channels + hidden_channels,
-            2 * hidden_channels,
-            kernel_size,
-            padding=padding
-        )
-        self.conv_h = nn.Conv2d(
-            in_channels + hidden_channels,
-            hidden_channels,
-            kernel_size,
-            padding=padding
-        )
+        # Projeção de z_q (upsampleado)
+        self.z_proj = nn.Linear(self._flat_z_dim, hidden)
 
-    def forward(self, x, h_prev):
-        if h_prev is None:
-            h_prev = torch.zeros(
-                x.size(0),
-                self.conv_h.out_channels,
-                x.size(2),
-                x.size(3),
-                device=x.device,
-                dtype=x.dtype
-            )
-
-        combined = torch.cat([x, h_prev], dim=1)
-        z, r = self.conv_zr(combined).chunk(2, dim=1)
-        z, r = torch.sigmoid(z), torch.sigmoid(r)
-
-        combined_r = torch.cat([x, r * h_prev], dim=1)
-        h_tilde = torch.tanh(self.conv_h(combined_r))
-
-        h = (1 - z) * h_prev + z * h_tilde
-        return h
-
-
-class ZFiLM(nn.Module):
-    def __init__(self, z_dim, hidden):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(z_dim, hidden * 2)
-        )
-
-    def forward(self, z_q):
-        gamma, beta = self.net(z_q).chunk(2, dim=1)
-        gamma = gamma.unsqueeze(-1).unsqueeze(-1)
-        beta = beta.unsqueeze(-1).unsqueeze(-1)
-        return gamma, beta
-
-
-class TemporalConvGRUDecoderFiLM(nn.Module):
-    def __init__(self, z_dim=16, frame_channels=3, hidden=48):
-        super().__init__()
-
-        self.gru = ConvGRUCell(
-            in_channels=frame_channels,
-            hidden_channels=hidden
-        )
-
-        self.film = ZFiLM(z_dim, hidden)
-
-        self.out = nn.Sequential(
-            nn.Conv2d(hidden, hidden, 3, padding=1),
+        # MLP com duas camadas escondidas
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden + self._flat_frame_dim, hidden),
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, frame_channels, 3, padding=1)
-        )
-
-    def forward(self, z_q, x_prev, h_prev):
-        h = self.gru(x_prev, h_prev)
-
-        # 🔑 Modulação FiLM
-        gamma, beta = self.film(z_q)
-        h = gamma * h + beta
-
-        x_t = self.out(h)
-        return x_t, h
-
-class TemporalConvGRUDecoder(nn.Module):
-    def __init__(
-        self,
-        z_dim=16,
-        frame_channels=3,
-        hidden=64,
-        frame_size=24
-    ):
-        super().__init__()
-
-        self.z_proj = nn.Conv2d(z_dim, hidden, kernel_size=1)
-
-        self.gru = ConvGRUCell(
-            in_channels=frame_channels + hidden,
-            hidden_channels=hidden
-        )
-
-        self.out = nn.Sequential(
-            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.Linear(hidden, hidden),
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, frame_channels, 3, padding=1)
+            nn.Linear(hidden, self._flat_frame_dim),
+            nn.Sigmoid()  # ou Tanh, dependendo da escala da sua saída
         )
 
-    def forward(self, z_q, x_prev, h_prev):
-        # z_q: [B, D, H_z, W_z]
-        z_up = F.interpolate(
-            z_q,
-            size=x_prev.shape[-2:],
-            mode="bilinear",
-            align_corners=False
-        )
+    def forward(self, z_q: torch.Tensor, x_prev: torch.Tensor) -> torch.Tensor:
+        B = z_q.size(0)
 
-        z_feat = self.z_proj(z_up)
-        x_in = torch.cat([x_prev, z_feat], dim=1)
+        # Upsample z_q → mesmo tamanho do frame
+        z_up = F.interpolate(z_q, size=(self._frame_size, self._frame_size),
+                            mode="bilinear", align_corners=False)
+        
+        # Achata e projeta
+        z_flat = z_up.reshape(B, -1)
+        z_feat = self.z_proj(z_flat)
 
-        h = self.gru(x_in, h_prev)
-        x_t = self.out(h)
+        # Frame anterior achatado
+        x_prev_flat = x_prev.reshape(B, -1)
 
-        return x_t, h
+        # Concatena z + frame anterior
+        x_in = torch.cat([z_feat, x_prev_flat], dim=1)
+
+        # Passa pela MLP
+        x_out = self.mlp(x_in)
+
+        # Reconstrói o frame [B, C, H, W]
+        x_t = x_out.view(B, self._frame_channels, self._frame_size, self._frame_size)
+        return x_t
 
 
 # ---------- Modelo completo que recebe imagem-grid e usa UM z_q ----------
-class ModelGridTemporalVQVAErgb(nn.Module):
+class RGB(nn.Module):
     def __init__(
         self,
         device,
@@ -435,24 +360,8 @@ class ModelGridTemporalVQVAErgb(nn.Module):
         super().__init__()
         self.device = device
         self.encoder = ViTEncoder()
-        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
-        
-
-                # 🔥 NOVO: VQ LOCAL (símbolos / cores)
-        self.vq_out = VectorQuantizerEMA(
-            num_embeddings=16,      # número máximo de estados locais
-            embedding_dim=8         # dimensão simbólica
-        )
-
-        # 🔥 Decoder agora gera embeddings simbólicos
-        self.decoder = TemporalConvGRUDecoderFiLM(
-            z_dim=16,
-            frame_channels=8        # NÃO é RGB, é embedding
-        )
-
-        # Apenas para visualização (opcional)
-        self.to_rgb = nn.Conv2d(8, 3, kernel_size=1)
-
+        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
+        self.decoder = TemporalDecoderSingleZq()
         self._frame_size = frame_size
         self.to(device)
 
@@ -502,45 +411,25 @@ class ModelGridTemporalVQVAErgb(nn.Module):
             # frames_gt tem n_frames elementos
             assert len(frames_gt) == n_frames, f"Esperava {n_frames} frames, recebido {len(frames_gt)}"
 
-        sym_frames = []
-        q_loss_out_total = 0.0
-
-        x_prev = torch.zeros(
-            B, 8, self._frame_size, self._frame_size,
-            device=img_grid.device
-        )
-        h = None
+        # 4) reconstrução passo a passo usando o mesmo z_q
+        recons: List[torch.Tensor] = []
+        # frame inicial: zeros (pode trocar por frame preto ou outro condicional)
+        x_prev = torch.zeros(B, C, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
 
         for t in range(n_frames):
-
+            # se teacher forcing: usa frame real anterior (frames_gt[t-1]) quando t>0
             if teacher_forcing and t > 0:
-                # teacher forcing agora usa embedding quantizado
-                x_prev = sym_frames[-1].detach()
+                x_prev = frames_gt[t - 1]
 
-            # 1️⃣ decoder gera embedding contínuo
-            y_t, h = self.decoder(z_q, x_prev, h)
+            x_t = self.decoder(z_q, x_prev)  # usa o mesmo z_q em cada passo
+            recons.append(x_t)
+            # atualiza x_prev para próxima iteração usando a predição
+            x_prev = x_t.detach()  # detach evita gradientes recorrentes indesejados
 
-            # 2️⃣ quantização LOCAL (símbolos)
-            if turnOnQuantization:
-                y_q, q_loss_out, indices_out, perplexity_out, used_codes_out = self.vq_out(y_t)
-
-                q_loss_out_total = q_loss_out_total + q_loss_out
-            else:
-                # ainda não quantiza — apenas passa direto
-                
-                y_q =y_t
-
-          
-
-            sym_frames.append(y_q)
-            x_prev = y_q.detach()
-
-
-        rgb_frames = [self.to_rgb(f) for f in sym_frames]
         # 5) junta grid e retorna
-        out_grid = join_grid(rgb_frames, n_rows, n_cols)
+        out_grid = join_grid(recons, n_rows, n_cols)
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
-        return out_grid, q_loss,q_loss_out_total/len(rgb_frames), indices, perplexity, used_codes
+        return out_grid, q_loss, indices, perplexity, used_codes
 
 
     
@@ -621,7 +510,7 @@ def teste0():
         # 4) reconstrução passo a passo usando o mesmo z_q
     recons: List[torch.Tensor] = []
     # frame inicial: zeros (pode trocar por frame preto ou outro condicional)
-    x_prev = torch.zeros(1, 7, 24, 24, device=video0.device, dtype=video0.dtype)
+    x_prev = torch.zeros(1, 3, 24, 24, device=video0.device, dtype=video0.dtype)
     
     for t in range(n_frames):
             # se teacher forcing: usa frame real anterior (frames_gt[t-1]) quando t>0
@@ -638,14 +527,12 @@ def teste0():
     print("fim",out_grid.shape)
 def teste1():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ModelGridTemporalVQVAErgb(device)
-    video0 = ReadDatas.readData("./",["resultado.npz"],OneHot=False)[0]
-    print(video0.shape)
+    model = RGB(device)
+    video0 = ReadDatas.readData("./",["resultado.npz"],OneHot=True)[0]
     video0 = video0[:3,:,:]
     test = video0.unsqueeze(0).float()
     test = test.to(device)
     out = model(test)[0]
-    
     print(out.shape)
     
 
