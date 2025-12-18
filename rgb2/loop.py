@@ -217,7 +217,7 @@ if __name__ == "__main__":
             
             # --- Forward ---
             
-            x_rec, vq_loss, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
+            x_rec, vq_loss, indices, perplexity, used_codes,y = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
             #recon_loss = F.mse_loss(x_rec, x)
 
@@ -238,6 +238,26 @@ if __name__ == "__main__":
 
             loss_recon = weighted_l1.sum() / weight_map.sum().clamp(min=1.0)
             loss_J = 0
+
+
+            entropy_px = -(y * torch.log(y + 1e-8)).sum(dim=2).mean()
+            avg_usage = y.mean(dim=(0,1,3,4))
+            entropy_global = -(avg_usage * torch.log(avg_usage + 1e-8)).sum()
+
+
+            # --- pesos ---
+            lambda_vq = 1.0
+            lambda_px = 0.01
+            lambda_global = 0.1
+
+            loss = (
+                loss_recon
+                + lambda_vq * vq_loss
+                + lambda_px * entropy_px
+                + lambda_global * entropy_global
+)
+
+
             loss = loss_recon + vq_loss*0.01
             
             # --- Backprop ---

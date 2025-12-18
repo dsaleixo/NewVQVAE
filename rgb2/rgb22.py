@@ -329,6 +329,31 @@ class ConvGRUCell(nn.Module):
         return h
 
 
+class GumbelPixelQuantizer(nn.Module):
+    def __init__(self, num_codes, tau=1.0):
+        super().__init__()
+        self.num_codes = num_codes
+        self.tau = tau
+
+    def forward(self, logits, hard=False):
+        """
+        logits: [B, K, H, W]
+        """
+        B, K, H, W = logits.shape
+        logits = logits.permute(0, 2, 3, 1)  # [B,H,W,K]
+
+        y = F.gumbel_softmax(
+            logits,
+            tau=self.tau,
+            hard=hard,
+            dim=-1
+        )
+
+        indices = y.argmax(dim=-1)
+        y = y.permute(0, 3, 1, 2)  # [B,K,H,W]
+        return y, indices
+
+
 
 class TemporalConvGRUDecoder(nn.Module):
     def __init__(
@@ -336,7 +361,8 @@ class TemporalConvGRUDecoder(nn.Module):
         z_dim=128,
         frame_channels=3,
         hidden=16,
-        frame_size=24
+        frame_size=24,
+        num_pixel_codes=16,
     ):
         super().__init__()
 
@@ -350,7 +376,7 @@ class TemporalConvGRUDecoder(nn.Module):
         self.out = nn.Sequential(
             nn.Conv2d(hidden, hidden, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, frame_channels, 3, padding=1)
+            nn.Conv2d(hidden, num_pixel_codes, 3, padding=1)
         )
 
     def forward(self, z_q, x_prev, h_prev):
@@ -393,6 +419,11 @@ class RGB(nn.Module):
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
         self.decoder = TemporalConvGRUDecoder()
         self._frame_size = frame_size
+        self.num_pixel_codes = 16
+        self.gumbel = GumbelPixelQuantizer(self.num_pixel_codes, tau=1.0)
+        self.pixel_codebook = nn.Parameter(
+            torch.rand(self.num_pixel_codes, 3)
+        )
         self.to(device)
 
     def forward(
@@ -445,13 +476,31 @@ class RGB(nn.Module):
         # 4) reconstrução passo a passo usando o mesmo z_q
         recons: List[torch.Tensor] = []
         # frame inicial: zeros (pode trocar por frame preto ou outro condicional)
-        x_prev = torch.zeros(B, C, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
+        x_prev = torch.zeros(B, 3, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
         h = None
+        ys = []
         for t in range(n_frames):
             if teacher_forcing and t > 0:
                 x_prev = frames_gt[t - 1]
            
             x_t, h = self.decoder(z_q, x_prev, h)
+
+
+            # Gumbel por pixel
+            y, pixel_indices = self.gumbel(
+                x_t,
+                hard=not self.training
+            )
+            ys.append(y)
+            # Constrói RGB a partir do codebook
+            x_t = torch.einsum(
+                "bkhw,kc->bchw",
+                y,
+                self.pixel_codebook
+)
+
+
+
             recons.append(x_t)
 
             x_prev = x_t.detach()
@@ -459,7 +508,7 @@ class RGB(nn.Module):
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
-        return out_grid, q_loss, indices, perplexity, used_codes
+        return out_grid, q_loss, indices, perplexity, used_codes,torch.stack(ys, dim=1)
 
 
     
