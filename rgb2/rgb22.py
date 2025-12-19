@@ -548,9 +548,9 @@ class RGB(nn.Module):
         ys = []
         weights_all = []
         perplexities = []
-        truncate_every = 10
+        truncate_every = 4
         for t in range(n_frames):
-            if teacher_forcing and t > 0 and t%10==0:
+            if teacher_forcing and t > 0 and t%4==0:
                 x_prev = frames_gt[t - 1]
            
             x_t, h, weights, px_perplexity = self.decoder(z_q, x_prev, h)
@@ -560,7 +560,7 @@ class RGB(nn.Module):
             # 🔴 TRUNCATED BPTT
             if (t + 1) % truncate_every == 0:
                 h = h.detach()
-            x_prev = x_t.detach()
+            x_prev = x_t
 
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
