@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python  rgb_new_decoder/loop5.py
+python  rgb2/loopS.py
