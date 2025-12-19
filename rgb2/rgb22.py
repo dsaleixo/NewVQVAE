@@ -336,7 +336,7 @@ class SoftVectorQuantizer(nn.Module):
         self.tau = tau
 
         self.codebook = nn.Parameter(
-            torch.randn(num_embeddings, embedding_dim) * 0.1
+            torch.randn(num_embeddings, embedding_dim) 
         )
 
     def forward(self, z):
