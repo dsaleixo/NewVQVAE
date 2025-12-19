@@ -248,8 +248,8 @@ if __name__ == "__main__":
 
             # --- pesos ---
             lambda_vq = 1.0
-            lambda_px = 0.01
-            lambda_global = 0.1
+            lambda_px = 0.0001
+            lambda_global = 0.001
 
             loss = (
                 loss_recon
