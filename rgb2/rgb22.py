@@ -430,7 +430,15 @@ class TemporalConvGRUDecoder(nn.Module):
             nn.Conv2d(pixel_feat_dim, hidden, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(hidden, frame_channels, 3, padding=1)
+
         )
+
+        self.residual_head = nn.Sequential(
+            nn.Conv2d(3, 16, 3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 3, 1)
+        )
+
     def forward(self, z_q, x_prev, h_prev):
         z_up = F.interpolate(
             z_q,
@@ -449,9 +457,12 @@ class TemporalConvGRUDecoder(nn.Module):
 
         # 🔹 quantização suave
         feat_q, weights, perplexity = self.pixel_quant(feat)
-
-        # 🔹 RGB
-        x_t = self.out(feat_q)
+        # x_q: saída quantizada (Soft-VQ)
+       
+                # 🔹 RGB
+        x_base = self.out(h)          # [B, 3, H, W]
+        residual = self.residual_head(x_base)
+        x_t = x_base + 0.1 * residual
 
         return x_t, h, weights, perplexity
 
