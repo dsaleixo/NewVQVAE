@@ -94,22 +94,8 @@ def validation(model, val_loader: DataLoader, device='cuda',):
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
 
             x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
-            # --- Loss ---
-            black_thresh = 0.02
-
-            non_black_mask = (
-                x.abs().sum(dim=1, keepdim=True) > black_thresh
-            ).float()
-
-            w_fg = 10.0   # pixels coloridos
-            w_bg = 1.0    # fundo
-
-            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
-            l1 = torch.abs(x_rec - x)
-
-            weighted_l1 = l1 * weight_map
-
-            loss_recon = weighted_l1.sum() / weight_map.sum().clamp(min=1.0)
+           
+            loss_recon = F.mse_loss(x_rec, x)
 
             loss_J =0
             loss = loss_recon + vq_loss
@@ -228,22 +214,13 @@ if __name__ == "__main__":
             loss_J = 0
 
 
-            entropy_px = -(y * torch.log(y + 1e-8)).sum(dim=2).mean()
-            avg_usage = y.mean(dim=(0,1,3,4))
-            entropy_global = -(avg_usage * torch.log(avg_usage + 1e-8)).sum()
-
-
-            # --- pesos ---
-            lambda_vq = 1.0
-            lambda_px = 0.0001
-            lambda_global = 0.001
+         
 
             loss = (
                 loss_recon
-                + lambda_vq * vq_loss
-                + lambda_px * entropy_px
-                + lambda_global * entropy_global
-)
+                + 0.01 * vq_loss
+            )
+        
 
 
             #loss = loss_recon + vq_loss*0.01
