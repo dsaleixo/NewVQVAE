@@ -369,7 +369,7 @@ class SoftVectorQuantizer(nn.Module):
 
 
 class GumbelPixelQuantizer(nn.Module):
-    def __init__(self, num_codes, tau=1.0):
+    def __init__(self, num_codes, tau=0.2):
         super().__init__()
         self.num_codes = num_codes
         self.tau = tau
@@ -422,7 +422,7 @@ class TemporalConvGRUDecoder(nn.Module):
         self.pixel_quant = SoftVectorQuantizer(
             num_embeddings=num_pixel_codes,
             embedding_dim=pixel_feat_dim,
-            tau=1.0
+            tau=0.2
         )
 
         # 🔹 projeção final para RGB
@@ -550,7 +550,7 @@ class RGB(nn.Module):
         perplexities = []
         truncate_every = 3
         for t in range(n_frames):
-            if teacher_forcing and t > 0:
+            if teacher_forcing and t > 0 and t%4==0:
                 x_prev = frames_gt[t - 1]
            
             x_t, h, weights, px_perplexity = self.decoder(z_q, x_prev, h)
