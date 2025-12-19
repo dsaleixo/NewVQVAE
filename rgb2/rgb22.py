@@ -434,9 +434,9 @@ class TemporalConvGRUDecoder(nn.Module):
         )
 
         self.residual_head = nn.Sequential(
-            nn.Conv2d(3, 16, 3, padding=1),
+            nn.Conv2d(3, 32, 3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(16, 3, 1)
+            nn.Conv2d(32, 3, 1)
         )
 
     def forward(self, z_q, x_prev, h_prev):
