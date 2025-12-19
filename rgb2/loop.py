@@ -208,7 +208,7 @@ if __name__ == "__main__":
             # --- Loss ---
             #recon_loss = F.mse_loss(x_rec, x)
 
-
+            print("weights_all",weights_all.shape)
         
             loss_recon = F.mse_loss(x_rec, x)
             loss_J = 0
