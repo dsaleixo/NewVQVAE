@@ -14,4 +14,4 @@ source $HOME/VQVAE/bin/activate
 
 
 
-python  rgb2/loopS.py
+python  rgb2/loop.py
