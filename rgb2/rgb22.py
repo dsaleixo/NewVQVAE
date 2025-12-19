@@ -401,27 +401,37 @@ class TemporalConvGRUDecoder(nn.Module):
         self,
         z_dim=128,
         frame_channels=3,
-        hidden=16,
+        hidden=32,
         frame_size=24,
-        num_pixel_codes=16,
+        pixel_feat_dim=16,
+        num_pixel_codes=32
     ):
         super().__init__()
 
-        self.z_proj = nn.Conv2d(z_dim, hidden, kernel_size=1)
+        self.z_proj = nn.Conv2d(z_dim, hidden, 1)
 
         self.gru = ConvGRUCell(
             in_channels=frame_channels + hidden,
             hidden_channels=hidden
         )
 
-        self.out = nn.Sequential(
-            nn.Conv2d(hidden, hidden, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, num_pixel_codes, 3, padding=1)
+        # 🔹 feature por pixel
+        self.pixel_feat = nn.Conv2d(hidden, pixel_feat_dim, 1)
+
+        # 🔹 Soft-VQ
+        self.pixel_quant = SoftVectorQuantizer(
+            num_embeddings=num_pixel_codes,
+            embedding_dim=pixel_feat_dim,
+            tau=1.0
         )
 
+        # 🔹 projeção final para RGB
+        self.out = nn.Sequential(
+            nn.Conv2d(pixel_feat_dim, hidden, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(hidden, frame_channels, 3, padding=1)
+        )
     def forward(self, z_q, x_prev, h_prev):
-        # z_q: [B, D, H_z, W_z]
         z_up = F.interpolate(
             z_q,
             size=x_prev.shape[-2:],
@@ -433,9 +443,18 @@ class TemporalConvGRUDecoder(nn.Module):
         x_in = torch.cat([x_prev, z_feat], dim=1)
 
         h = self.gru(x_in, h_prev)
-        x_t = self.out(h)
 
-        return x_t, h
+        # 🔹 features por pixel
+        feat = self.pixel_feat(h)
+
+        # 🔹 quantização suave
+        feat_q, weights, perplexity = self.pixel_quant(feat)
+
+        # 🔹 RGB
+        x_t = self.out(feat_q)
+
+        return x_t, h, weights, perplexity
+
 
 
 
@@ -460,11 +479,7 @@ class RGB(nn.Module):
         self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
         self.decoder = TemporalConvGRUDecoder()
         self._frame_size = frame_size
-        self.num_pixel_codes = 16
-        self.gumbel = GumbelPixelQuantizer(self.num_pixel_codes, tau=1.0)
-        self.pixel_codebook = nn.Parameter(
-            torch.rand(self.num_pixel_codes, 3)
-        )
+   
         self.to(device)
 
     def forward(
@@ -525,30 +540,7 @@ class RGB(nn.Module):
             if teacher_forcing and t > 0:
                 x_prev = frames_gt[t - 1]
            
-            x_t, h = self.decoder(z_q, x_prev, h)
-
-
-            # Gumbel por pixel
-            y, pixel_indices = self.gumbel(
-                x_t,
-                hard=not self.training
-            )
-            if not torch.isfinite(y).all():
-                print("❌ y contém NaN ou Inf")
-                print("y min:", y.min().item())
-                print("y max:", y.max().item())
-                raise RuntimeError("NaN em y")
-            ys.append(y)
-            # Constrói RGB a partir do codebook
-            x_t = torch.einsum(
-                "bkhw,kc->bchw",
-                y,
-                self.pixel_codebook
-)
-            if not torch.isfinite(x_t).all():
-                print("❌ x_t contém NaN ou Inf")
-                raise RuntimeError("NaN em x_t")
-
+            x_t, h, weights, px_perplexity = self.decoder(z_q, x_prev, h)
 
             recons.append(x_t)
             # 🔴 TRUNCATED BPTT
@@ -560,8 +552,8 @@ class RGB(nn.Module):
         out_grid = join_grid(recons, n_rows, n_cols)
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
 
-        y_all = torch.stack(ys, dim=1) if self.training else None
-        return out_grid, q_loss, indices, perplexity, used_codes,y_all
+        
+        return out_grid, q_loss, indices, perplexity, used_codes
 
 
     
