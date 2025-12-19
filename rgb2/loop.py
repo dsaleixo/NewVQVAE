@@ -194,7 +194,7 @@ if __name__ == "__main__":
     nextEpoch= 2
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
-            #model.initializeWeights(-1,5,trainLoader)
+            model.initializeWeights(-1,5,trainLoader)
             pass
              
     
