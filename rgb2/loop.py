@@ -213,7 +213,7 @@ if __name__ == "__main__":
             loss_recon = F.mse_loss(x_rec, x)
             loss_J = 0
 
-            usage = weights_all.mean(dim=(0,2,3))  # [K]
+            usage = weights_all.mean(dim=(0,1))  # [K]
             L_entropy = -(usage * torch.log(usage + 1e-8)).sum()
 
             loss = (
