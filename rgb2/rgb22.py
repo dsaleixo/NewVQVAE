@@ -328,6 +328,45 @@ class ConvGRUCell(nn.Module):
         h = (1 - z) * h_prev + z * h_tilde
         return h
 
+class SoftVectorQuantizer(nn.Module):
+    def __init__(self, num_embeddings, embedding_dim, tau=1.0):
+        super().__init__()
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
+        self.tau = tau
+
+        self.codebook = nn.Parameter(
+            torch.randn(num_embeddings, embedding_dim) * 0.1
+        )
+
+    def forward(self, z):
+        # z: [B, D, H, W]
+        B, D, H, W = z.shape
+        z_flat = z.permute(0,2,3,1).reshape(-1, D)  # [N, D]
+
+        # distâncias L2
+        dist = (
+            z_flat.pow(2).sum(1, keepdim=True)
+            + self.codebook.pow(2).sum(1)
+            - 2 * z_flat @ self.codebook.t()
+        )  # [N, K]
+
+        # pesos suaves
+        weights = F.softmax(-dist / self.tau, dim=1)
+
+        # quantização suave
+        z_q = weights @ self.codebook  # [N, D]
+        z_q = z_q.view(B, H, W, D).permute(0,3,1,2)
+
+        # straight-through
+        z_q = z + (z_q - z).detach()
+
+        # métricas úteis
+        usage = weights.mean(0)
+        perplexity = torch.exp(-torch.sum(usage * torch.log(usage + 1e-10)))
+
+        return z_q, weights, perplexity
+
 
 class GumbelPixelQuantizer(nn.Module):
     def __init__(self, num_codes, tau=1.0):
@@ -481,6 +520,7 @@ class RGB(nn.Module):
         x_prev = torch.zeros(B, 3, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
         h = None
         ys = []
+        truncate_every = 3
         for t in range(n_frames):
             if teacher_forcing and t > 0:
                 x_prev = frames_gt[t - 1]
@@ -511,7 +551,9 @@ class RGB(nn.Module):
 
 
             recons.append(x_t)
-
+            # 🔴 TRUNCATED BPTT
+            if (t + 1) % truncate_every == 0:
+                h = h.detach()
             x_prev = x_t.detach()
 
         # 5) junta grid e retorna

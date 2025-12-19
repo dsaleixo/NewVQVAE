@@ -223,21 +223,8 @@ if __name__ == "__main__":
             #recon_loss = F.mse_loss(x_rec, x)
 
 
-            black_thresh = 0.02
-
-            non_black_mask = (
-                x.abs().sum(dim=1, keepdim=True) > black_thresh
-            ).float()
-
-            w_fg = 1.0   # pixels coloridos
-            w_bg = 0   # fundo
-
-            weight_map = w_bg + (w_fg - w_bg) * non_black_mask
-            l1 = torch.abs(x_rec - x)
-
-            weighted_l1 = l1 * weight_map
-
-            loss_recon = weighted_l1.sum() / weight_map.sum().clamp(min=1.0)
+        
+            loss_recon = F.mse_loss(x_rec, x)
             loss_J = 0
 
 
