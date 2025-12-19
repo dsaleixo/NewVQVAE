@@ -434,9 +434,9 @@ class TemporalConvGRUDecoder(nn.Module):
         )
 
         self.residual_head = nn.Sequential(
-            nn.Conv2d(3, 32, 3, padding=1),
+            nn.Conv2d(3, 16, 3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(32, 3, 1)
+            nn.Conv2d(16, 3, 1)
         )
 
     def forward(self, z_q, x_prev, h_prev):
@@ -460,7 +460,7 @@ class TemporalConvGRUDecoder(nn.Module):
         # x_q: saída quantizada (Soft-VQ)
        
                 # 🔹 RGB
-        x_base = self.out(h)          # [B, 3, H, W]
+        x_base = self.out(feat_q)          # [B, 3, H, W]
         residual = self.residual_head(x_base)
         x_t = x_base + 0.1 * residual
 
