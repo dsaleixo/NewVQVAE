@@ -342,7 +342,7 @@ class GumbelPixelQuantizer(nn.Module):
         B, K, H, W = logits.shape
         logits = logits.permute(0, 2, 3, 1)  # [B,H,W,K]
         logits = logits.clamp(-1, 1)
-        
+        logits = logits - logits.mean(dim=1, keepdim=True)
 
         y = F.gumbel_softmax(
             logits,
