@@ -532,7 +532,7 @@ class RGB(nn.Module):
         # 4) reconstrução passo a passo usando o mesmo z_q
         recons: List[torch.Tensor] = []
         # frame inicial: zeros (pode trocar por frame preto ou outro condicional)
-        x_prev = torch.zeros(B, 3, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
+        x_prev = frames_gt[0]# torch.zeros(B, 3, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
         h = None
         ys = []
         weights_all = []
