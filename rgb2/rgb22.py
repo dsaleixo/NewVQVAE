@@ -67,7 +67,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=128, n_layers=3, n_heads=16):
+    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=16, n_layers=3, n_heads=16):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
@@ -399,7 +399,7 @@ class GumbelPixelQuantizer(nn.Module):
 class TemporalConvGRUDecoder(nn.Module):
     def __init__(
         self,
-        z_dim=128,
+        z_dim=16,
         frame_channels=3,
         hidden=32,
         frame_size=24,
@@ -487,7 +487,7 @@ class RGB(nn.Module):
         super().__init__()
         self.device = device
         self.encoder = ViTEncoder()
-        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=128)
+        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=16)
         self.decoder = TemporalConvGRUDecoder()
         self._frame_size = frame_size
    
