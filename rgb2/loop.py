@@ -230,7 +230,7 @@ if __name__ == "__main__":
             ).float()
 
             w_fg = 1000.0   # pixels coloridos
-            w_bg = 1.0    # fundo
+            w_bg = 0   # fundo
 
             weight_map = w_bg + (w_fg - w_bg) * non_black_mask
             l1 = torch.abs(x_rec - x)
