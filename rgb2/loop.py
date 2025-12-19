@@ -229,7 +229,7 @@ if __name__ == "__main__":
                 x.abs().sum(dim=1, keepdim=True) > black_thresh
             ).float()
 
-            w_fg = 1000.0   # pixels coloridos
+            w_fg = 1.0   # pixels coloridos
             w_bg = 0   # fundo
 
             weight_map = w_bg + (w_fg - w_bg) * non_black_mask
