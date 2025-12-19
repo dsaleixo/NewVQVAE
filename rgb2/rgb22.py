@@ -535,13 +535,16 @@ class RGB(nn.Module):
         x_prev = torch.zeros(B, 3, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
         h = None
         ys = []
+        weights_all = []
+        perplexities = []
         truncate_every = 3
         for t in range(n_frames):
             if teacher_forcing and t > 0:
                 x_prev = frames_gt[t - 1]
            
             x_t, h, weights, px_perplexity = self.decoder(z_q, x_prev, h)
-
+            weights_all.append(weights.detach())
+            perplexities.append(px_perplexity.detach())
             recons.append(x_t)
             # 🔴 TRUNCATED BPTT
             if (t + 1) % truncate_every == 0:
@@ -551,9 +554,9 @@ class RGB(nn.Module):
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
-
+        weights_all = torch.stack(weights_all, dim=1)
         
-        return out_grid, q_loss, indices, perplexity, used_codes
+        return out_grid, q_loss, indices, perplexity, used_codes,weights_all
 
 
     

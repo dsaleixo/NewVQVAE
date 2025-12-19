@@ -93,7 +93,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
         for batch in val_loader:
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
 
-            x_rec, vq_loss, indices, perplexity, used_codes = model(x)              
+            x_rec, vq_loss, indices, perplexity, used_codes,weights_all = model(x)              
            
             loss_recon = F.mse_loss(x_rec, x)
 
@@ -136,7 +136,7 @@ def initialProcess(model,valLoader,device):
         #for i in range(len(valLoader)):
         i=0
         x = valLoader[i][:3,:,:].unsqueeze(0).to(device)
-        x_rec, vq_loss, indices, perplexity, used_codes = model(x)   
+        x_rec, vq_loss, indices, perplexity, used_codes,weights_all = model(x)   
         x_rec = x_rec.squeeze()
         x_rec_q = quantize_colors(x_rec)
         imgs = [x.squeeze(),x_rec,x_rec_q]
@@ -204,7 +204,7 @@ if __name__ == "__main__":
             
             # --- Forward ---
             
-            x_rec, vq_loss, indices, perplexity, used_codes = model(x,epoch>epochVQturnOn)              
+            x_rec, vq_loss, indices, perplexity, used_codes,weights_all = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
             #recon_loss = F.mse_loss(x_rec, x)
 
@@ -213,12 +213,13 @@ if __name__ == "__main__":
             loss_recon = F.mse_loss(x_rec, x)
             loss_J = 0
 
-
-         
+            usage = weights_all.mean(dim=(0,2,3))  # [K]
+            L_entropy = -(usage * torch.log(usage + 1e-8)).sum()
 
             loss = (
                 loss_recon
                 + 0.01 * vq_loss
+               +0.01*L_entropy
             )
         
 
