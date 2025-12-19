@@ -95,7 +95,14 @@ def validation(model, val_loader: DataLoader, device='cuda',):
 
             x_rec, vq_loss, indices, perplexity, used_codes,weights_all = model(x)              
            
-            loss_recon = F.mse_loss(x_rec, x)
+
+            # x_gt, x_rec: [B, 3, H, W]
+            pixel_energy = x.abs().sum(dim=1)  # [B, H, W]
+            mask = (pixel_energy > 0.05).float()  # ignora preto
+
+            recon = F.l1_loss(x_rec, x, reduction="none").mean(dim=1)
+            loss_recon = (recon * mask).sum() / (mask.sum() + 1e-6)
+            
 
             loss_J =0
             loss = loss_recon + vq_loss
