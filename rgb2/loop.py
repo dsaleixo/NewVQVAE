@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     wandb.init(
     project="VQVAE",
-    name = "loop5 nerfano ecoe 4 facaa sera, 16 z",
+    name = "loop5 nerfano ecoe 4 facaa sera, 16 z iv 1",
     
     resume=False,
     config={
