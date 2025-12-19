@@ -342,10 +342,12 @@ class GumbelPixelQuantizer(nn.Module):
         B, K, H, W = logits.shape
         logits = logits.permute(0, 2, 3, 1)  # [B,H,W,K]
         logits = logits.clamp(-1, 1)
+        hard = epoch > epochVQturnOn + 10
+
         y = F.gumbel_softmax(
             logits,
             tau=self.tau,
-            hard=hard,
+            hard=True,
             dim=-1
         )
 
