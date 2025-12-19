@@ -190,7 +190,7 @@ if __name__ == "__main__":
     #initialProcess(model,valLoader,device)
     initialProcess(model,valLoader,device)
     bestModelVal = validation(model,testLoader)
-    epochVQturnOn = 5
+    epochVQturnOn = 30
     nextEpoch= 2
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
@@ -226,7 +226,7 @@ if __name__ == "__main__":
             loss = (
                 loss_recon
                 + 0.1 * vq_loss
-               +0.1*L_entropy
+               +0.01*L_entropy
             )
         
 
