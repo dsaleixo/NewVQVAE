@@ -259,7 +259,7 @@ if __name__ == "__main__":
 )
 
 
-            loss = loss_recon + vq_loss*0.01
+            #loss = loss_recon + vq_loss*0.01
             
             # --- Backprop ---
             loss.backward()
