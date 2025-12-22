@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     wandb.init(
     project="VQVAE",
-    name = "loop5 nerfano ecoe 4 facaa sera, 16 z iv 1",
+    name = "loop5 in_o para o final",
     
     resume=False,
     config={
@@ -260,22 +260,23 @@ if __name__ == "__main__":
                 
                 
             })
-        modelVal = validation(model,testLoader)
-        if bestModelVal-modelVal>0.0000001:
-            print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxUpdadtexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-            bestModelVal=modelVal
-            torch.save(model.state_dict(), f"BestTEstModelBest.pth")
-            torch.save(model.state_dict(), f"BestTEstModel{epoch}.pth")
-            wandb.save("BestTEstModelBest.pth")
-            wandb.save(f"BestTEstModel{epoch}.pth")
-            initialProcess(model,valLoader,device)  
-            wandb.log({"Updade":1})
-            if epoch>epochVQturnOn and nextEpoch<epoch and False:
-                nextEpoch=30+epoch
-                analise = Analysis()
-                analise.analiseCodebook(model,trainLoader,"Train")
-                analise.analiseCodebook(model,testLoader,"Test")
-                analise.analiseCodebookIndividual(model)
-        else:
-            wandb.log({"Updade":0})
+       
+            modelVal = validation(model,testLoader,)
+            if bestModelVal-modelVal>0.0000001 and epoch>epochVQturnOn:
+                print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxUpdadtexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                bestModelVal=modelVal
+                torch.save(model.state_dict(), f"BestTEstModelBest.pth")
+                torch.save(model.state_dict(), f"BestTEstModel{epoch}.pth")
+                wandb.save("BestTEstModelBest.pth")
+                wandb.save(f"BestTEstModel{epoch}.pth")
+                initialProcess(model,valLoader,device)  
+                wandb.log({"Updade":1})
+                if epoch>epochVQturnOn and nextEpoch<epoch and False:
+                    nextEpoch=30+epoch
+                    analise = Analysis()
+                    analise.analiseCodebook(model,trainLoader,"Train")
+                    analise.analiseCodebook(model,testLoader,"Test")
+                    analise.analiseCodebookIndividual(model)
+            else:
+                wandb.log({"Updade":0})
 

@@ -542,15 +542,14 @@ class RGB(nn.Module):
 
         # 4) reconstrução passo a passo usando o mesmo z_q
         recons: List[torch.Tensor] = []
-        # frame inicial: zeros (pode trocar por frame preto ou outro condicional)
-        x_prev = frames_gt[0]# torch.zeros(B, 3, self._frame_size, self._frame_size, device=img_grid.device, dtype=img_grid.dtype)
+      
+        x_prev = frames_gt[0]
         h = None
-        ys = []
         weights_all = []
         perplexities = []
-        truncate_every = 4
+        truncate_every = 5
         for t in range(n_frames):
-            if teacher_forcing and t > 0 and t%1==0:
+            if teacher_forcing and t > 0 and t%5==0:
                 x_prev = frames_gt[t - 1]
            
             x_t, h, weights, px_perplexity = self.decoder(z_q, x_prev, h)
@@ -560,7 +559,9 @@ class RGB(nn.Module):
             # 🔴 TRUNCATED BPTT
             if (t + 1) % truncate_every == 0:
                 h = h.detach()
-            x_prev = x_t.detach()
+                x_t = x_t.detach()
+            
+            x_prev = x_t
 
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
