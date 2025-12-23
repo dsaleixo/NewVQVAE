@@ -401,7 +401,7 @@ class TemporalConvGRUDecoder(nn.Module):
         self,
         z_dim=16,
         frame_channels=3,
-        hidden=32,
+        hidden=128,
         frame_size=24,
         pixel_feat_dim=16,
         num_pixel_codes=32
