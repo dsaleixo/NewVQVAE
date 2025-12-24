@@ -15,6 +15,8 @@ from util.analysis import Analysis
 
 from util.readDatas import ReadDatas
 from torch.nn import functional as F
+
+os.environ["WANDB_API_KEY"] = "e6dd69e5ba37b74ef8d3ef0fa9dd28a33e4eeb6e"
 palette = torch.tensor([
                 [255,255,255],
                 [200,200,200],
@@ -93,7 +95,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
         for batch in val_loader:
             x = batch[:,:3,:,:].to(device)  # [B, C, H, W]
 
-            x_rec, vq_loss, indices, perplexity, used_codes,weights_all = model(x)              
+            x_rec, vq_loss, indices, perplexity, used_codes,weights_all,kl_loss = model(x)              
            
 
             # x_gt, x_rec: [B, 3, H, W]
@@ -102,10 +104,11 @@ def validation(model, val_loader: DataLoader, device='cuda',):
 
             recon = F.l1_loss(x_rec, x, reduction="none").mean(dim=1)
             loss_recon = (recon * mask).sum() / (mask.sum() + 1e-6)
-            
+            usage = weights_all.mean(dim=(0,1))  # [K]
+            L_entropy = -(usage * torch.log(usage + 1e-8)).sum()
 
             loss_J =0
-            loss = loss_recon + vq_loss
+            loss = loss_recon*10 + vq_loss*0.1
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += loss_recon.item()
@@ -127,6 +130,8 @@ def validation(model, val_loader: DataLoader, device='cuda',):
             "Test/VQ Loss": vq_loss_loss_epoch,
             "Test/VQ Perplexity": perplexity_loss_epoch,
             "Test/VQ Used Codes": used_codes_loss_epoch,
+            "L_entropy":L_entropy,
+            "kl_loss":kl_loss
             
             
         })
@@ -143,7 +148,7 @@ def initialProcess(model,valLoader,device):
         #for i in range(len(valLoader)):
         i=0
         x = valLoader[i][:3,:,:].unsqueeze(0).to(device)
-        x_rec, vq_loss, indices, perplexity, used_codes,weights_all = model(x)   
+        x_rec, vq_loss, indices, perplexity, used_codes,weights_all,kl_loss = model(x)   
         x_rec = x_rec.squeeze()
         x_rec_q = quantize_colors(x_rec)
         imgs = [x.squeeze(),x_rec,x_rec_q]
@@ -182,7 +187,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=1e-4,
-        weight_decay=1e-6
+        weight_decay=0
     )
     
     
@@ -211,7 +216,7 @@ if __name__ == "__main__":
             
             # --- Forward ---
             
-            x_rec, vq_loss, indices, perplexity, used_codes,weights_all = model(x,epoch>epochVQturnOn)              
+            x_rec, vq_loss, indices, perplexity, used_codes,weights_all,kl_loss = model(x,epoch>epochVQturnOn)              
             # --- Loss ---
             #recon_loss = F.mse_loss(x_rec, x)
 
@@ -224,9 +229,10 @@ if __name__ == "__main__":
             L_entropy = -(usage * torch.log(usage + 1e-8)).sum()
 
             loss = (
-                loss_recon
+                loss_recon*10
                 + 0.1 * vq_loss
-               +0.001*L_entropy
+               +0.0001*L_entropy
+                +0.001*kl_loss
             )
         
 
@@ -257,6 +263,8 @@ if __name__ == "__main__":
                 "Train/VQ Loss": vq_loss.item(),
                 "Train/VQ Perplexity": perplexity.item(),
                 "Train/VQ Used Codes": used_codes.sum().item(),
+                "L_entropy":L_entropy,
+                "kl_loss":kl_loss
                 
                 
             })

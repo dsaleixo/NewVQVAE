@@ -20,7 +20,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import os
 import wandb
-os.environ["WANDB_API_KEY"] = "e6dd69e5ba37b74ef8d3ef0fa9dd28a33e4eeb6e"
+
 
 
 # ---------- utilitários para split/join (grid) ----------
@@ -174,8 +174,15 @@ class VectorQuantizerEMA(nn.Module):
 
         # 4. used_codes (máscara binária de códigos utilizados)
         used_codes = (encodings.sum(0) > 0).float()
+        uniform = torch.full_like(avg_probs, 1.0 / self.num_embeddings)
+        kl_loss = F.kl_div(
+            (avg_probs + 1e-10).log(),
+            uniform,
+            reduction="batchmean"
+        )
 
-        return z_q, loss, indices, perplexity, used_codes
+
+        return z_q, loss, indices, perplexity, used_codes,kl_loss
 
     @torch.no_grad()
     def init_from_features(self, z: torch.Tensor) -> None:
@@ -520,11 +527,12 @@ class RGB(nn.Module):
         z = F.avg_pool2d(z, kernel_size=2)  # 12x12 → 6x6
         # 2) Quantize (single z_q)
         if turnOnQuantization:
-            z_q, q_loss, indices, perplexity, used_codes = self.quantizer(z)
+            z_q, q_loss, indices, perplexity, used_codes,kl_loss = self.quantizer(z)
         else:
             # ainda não quantiza — apenas passa direto
             z_q = z
             q_loss = torch.tensor(0.0, device=img_grid.device)
+            kl_loss = torch.zeros((), device=img_grid.device)
             indices = None
             perplexity = torch.zeros(1, device=img_grid.device, dtype=img_grid.dtype)-1
             used_codes = torch.zeros(1, device=img_grid.device, dtype=img_grid.dtype)-1
@@ -568,7 +576,7 @@ class RGB(nn.Module):
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
         weights_all = torch.stack(weights_all, dim=1)
         
-        return out_grid, q_loss, indices, perplexity, used_codes,weights_all
+        return out_grid, q_loss, indices, perplexity, used_codes,weights_all,kl_loss
 
 
     
