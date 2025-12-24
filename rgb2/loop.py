@@ -130,8 +130,8 @@ def validation(model, val_loader: DataLoader, device='cuda',):
             "Test/VQ Loss": vq_loss_loss_epoch,
             "Test/VQ Perplexity": perplexity_loss_epoch,
             "Test/VQ Used Codes": used_codes_loss_epoch,
-            "L_entropy":L_entropy,
-            "kl_loss":kl_loss
+            "Test/L_entropy":L_entropy,
+            "Test/kl_loss":kl_loss
             
             
         })
@@ -248,7 +248,7 @@ if __name__ == "__main__":
 
             running_perplexity += perplexity.item()
             
-            if batch_idx % 10 == 0:
+            if batch_idx % 1 == 0:
                 print(
                     f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx}], "
                     f"Loss: {loss.item():.4f}, Recon: {loss_recon.item():.4f}, LossJ: {loss_J:.4f} "
@@ -263,8 +263,8 @@ if __name__ == "__main__":
                 "Train/VQ Loss": vq_loss.item(),
                 "Train/VQ Perplexity": perplexity.item(),
                 "Train/VQ Used Codes": used_codes.sum().item(),
-                "L_entropy":L_entropy,
-                "kl_loss":kl_loss
+                "Train/L_entropy":L_entropy,
+                "Train/kl_loss":kl_loss
                 
                 
             })
