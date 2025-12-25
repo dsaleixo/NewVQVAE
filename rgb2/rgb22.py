@@ -80,14 +80,31 @@ class ViTEncoder(nn.Module):
             torch.zeros(1, self.n_patches, emb_dim)
         )
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
+
+          # 🔹 Attention Pooling
+        self.attn_pool = nn.Sequential(
+            nn.Linear(emb_dim, emb_dim),
+            nn.Tanh(),
+            nn.Linear(emb_dim, 1)
+        )
+  
     def forward(self, x):
-        x = self.patch_embed(x)
-        x = x + self.pos_embed  
-        x = self.transformer(x)
-        B, N, D = x.shape
-        H_out = W_out = self.img_size // self.patch_size
-        x = x.transpose(1,2).reshape(B, D, H_out, W_out)  # mapa 2D latente
-        return x  # [B, D, H', W']
+        B = x.size(0)
+
+        x = self.patch_embed(x)          # [B, N, D]
+        x = x + self.pos_embed
+        x = self.transformer(x)          # [B, N, D]
+
+        # 🔹 Attention Pooling
+        attn = self.attn_pool(x).squeeze(-1)  # [B, N]
+        attn = F.softmax(attn, dim=1)
+
+        z_global = torch.einsum("bn,bnd->bd", attn, x)  # [B, D]
+
+        # retorna como mapa 1x1 para compatibilidade
+        z_global = z_global.unsqueeze(-1).unsqueeze(-1)  # [B, D, 1, 1]
+
+        return z_global
 
 
 class VectorQuantizerEMA(nn.Module):
@@ -408,7 +425,7 @@ class TemporalConvGRUDecoder(nn.Module):
         self,
         z_dim=16,
         frame_channels=3,
-        hidden=128,
+        hidden=64,
         frame_size=24,
         pixel_feat_dim=16,
         num_pixel_codes=32
