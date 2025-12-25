@@ -186,7 +186,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=1e-4,
+        lr=1e-3,
         weight_decay=0
     )
     
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     #initialProcess(model,valLoader,device)
     initialProcess(model,valLoader,device)
     bestModelVal = validation(model,testLoader)
-    epochVQturnOn = 30
+    epochVQturnOn = 10
     nextEpoch= 2
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
