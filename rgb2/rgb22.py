@@ -574,7 +574,7 @@ class RGB(nn.Module):
         perplexities = []
         truncate_every = 5
         for t in range(n_frames):
-            if teacher_forcing and t > 0 and t%5==0:
+            if teacher_forcing and t > 0 and t%1==0:
                 x_prev = frames_gt[t - 1]
            
             x_t, h, weights, px_perplexity = self.decoder(z_q, x_prev, h)
