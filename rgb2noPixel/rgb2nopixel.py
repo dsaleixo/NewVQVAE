@@ -67,7 +67,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=16, n_layers=3, n_heads=16):
+    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=16, n_layers=2, n_heads=8):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
@@ -565,9 +565,9 @@ class RGBnoPixel(nn.Module):
         x_prev = frames_gt[0]
         h = None
       
-        truncate_every = 5
+        truncate_every = 3
         for t in range(n_frames):
-            if teacher_forcing and t > 0 and t%1==0:
+            if teacher_forcing and t > 0 and t%truncate_every==0:
                 x_prev = frames_gt[t - 1]
            
             x_t, h = self.decoder(z_q, x_prev, h)

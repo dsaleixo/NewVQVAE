@@ -108,7 +108,7 @@ def validation(model, val_loader: DataLoader, device='cuda',):
           
 
             loss_J =0
-            loss = loss_recon*10 + vq_loss*0.1+0.001*kl_loss
+            loss = loss_recon*10 + vq_loss*0.1+0.01*kl_loss
 
             total_loss_epoch += loss.item()
             recon_loss_epoch += loss_recon.item()
@@ -232,7 +232,7 @@ if __name__ == "__main__":
                 loss_recon*10
                 + 0.1 * vq_loss
        
-                +0.001*kl_loss
+                +0.01*kl_loss
             )
         
 
