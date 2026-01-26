@@ -352,44 +352,6 @@ class ConvGRUCell(nn.Module):
         h = (1 - z) * h_prev + z * h_tilde
         return h
 
-class SoftVectorQuantizer(nn.Module):
-    def __init__(self, num_embeddings, embedding_dim, tau=1.0):
-        super().__init__()
-        self.num_embeddings = num_embeddings
-        self.embedding_dim = embedding_dim
-        self.tau = tau
-
-        self.codebook = nn.Parameter(
-            torch.randn(num_embeddings, embedding_dim) 
-        )
-
-    def forward(self, z):
-        # z: [B, D, H, W]
-        B, D, H, W = z.shape
-        z_flat = z.permute(0,2,3,1).reshape(-1, D)  # [N, D]
-
-        # distâncias L2
-        dist = (
-            z_flat.pow(2).sum(1, keepdim=True)
-            + self.codebook.pow(2).sum(1)
-            - 2 * z_flat @ self.codebook.t()
-        )  # [N, K]
-
-        # pesos suaves
-        weights = F.softmax(-dist / self.tau, dim=1)
-
-        # quantização suave
-        z_q = weights @ self.codebook  # [N, D]
-        z_q = z_q.view(B, H, W, D).permute(0,3,1,2)
-
-        # straight-through
-        z_q = z + (z_q - z).detach()
-
-        # métricas úteis
-        usage = weights.mean(0)
-        perplexity = torch.exp(-torch.sum(usage * torch.log(usage + 1e-10)))
-
-        return z_q, weights, perplexity
 
 
 class GumbelPixelQuantizer(nn.Module):
