@@ -582,8 +582,7 @@ class RGBnoPixel(nn.Module):
 
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
-        # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
-        weights_all = torch.stack(weights_all, dim=1)
+
         
         return out_grid, q_loss, indices, perplexity, used_codes,kl_loss
 
