@@ -186,7 +186,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=1e-3,
+        lr=1e-2,
         weight_decay=0
     )
     
@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
             loss = (
                 loss_recon
-                + 0.1 * vq_loss
+                + 0.001 * vq_loss
        
            
             )
