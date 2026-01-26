@@ -385,7 +385,7 @@ class GumbelPixelQuantizer(nn.Module):
 class TemporalConvGRUDecoder(nn.Module):
     def __init__(
         self,
-        z_dim=4,
+        z_dim=8,
         frame_channels=3,
         hidden=24,
         frame_size=24,
