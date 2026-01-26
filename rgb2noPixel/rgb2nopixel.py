@@ -415,9 +415,9 @@ class TemporalConvGRUDecoder(nn.Module):
         )
 
         self.residual_head = nn.Sequential(
-            nn.Conv2d(3, 1, 3, padding=1),
+            nn.Conv2d(3, 3, 3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(1, 3, 1)
+            nn.Conv2d(3, 3, 1)
         )
 
     def forward(self, z_q, x_prev, h_prev):
@@ -527,7 +527,7 @@ class RGBnoPixel(nn.Module):
         x_prev = frames_gt[0]
         h = None
       
-        truncate_every = 3
+        truncate_every = 4
         for t in range(n_frames):
             if teacher_forcing and t > 0 and t%truncate_every==0:
                 x_prev = frames_gt[t - 1]
