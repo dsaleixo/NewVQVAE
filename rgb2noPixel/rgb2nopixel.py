@@ -67,7 +67,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=4, n_layers=4, n_heads=8):
+    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=8, n_layers=4, n_heads=8):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
@@ -389,7 +389,7 @@ class TemporalConvGRUDecoder(nn.Module):
         frame_channels=3,
         hidden=24,
         frame_size=24,
-        pixel_feat_dim=16,
+        pixel_feat_dim=8,
         
     ):
         super().__init__()
@@ -467,7 +467,7 @@ class RGBnoPixel(nn.Module):
         super().__init__()
         self.device = device
         self.encoder = ViTEncoder()
-        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=4)
+        self.quantizer = VectorQuantizerEMA(num_embeddings=30, embedding_dim=8)
         self.decoder = TemporalConvGRUDecoder()
         self._frame_size = frame_size
    
