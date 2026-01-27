@@ -504,7 +504,7 @@ class RGBnoPixel(nn.Module):
         x_prev = frames_gt[0]
         h = None
       
-        truncate_every = 4
+        truncate_every = 1
         for t in range(n_frames):
             if teacher_forcing and t > 0 and t%truncate_every==0:
                 x_prev = frames_gt[t - 1]
