@@ -197,11 +197,12 @@ if __name__ == "__main__":
     bestModelVal = validation(model,testLoader)
     epochVQturnOn = 10
     nextEpoch= 3
+    for param in model.decoder.parameters():
+                param.requires_grad = False
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
             #model.initializeWeights(-1,5,trainLoader)
-            for param in model.decoder.parameters():
-                param.requires_grad = False
+            
             pass
              
     
