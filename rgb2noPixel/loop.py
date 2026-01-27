@@ -196,10 +196,12 @@ if __name__ == "__main__":
     initialProcess(model,valLoader,device)
     bestModelVal = validation(model,testLoader)
     epochVQturnOn = 1
-    nextEpoch= 2
+    nextEpoch= 10
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
             #model.initializeWeights(-1,5,trainLoader)
+            for param in model.decoder.parameters():
+                param.requires_grad = False
             pass
              
     
