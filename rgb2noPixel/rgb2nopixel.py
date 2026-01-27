@@ -84,7 +84,7 @@ class ViTEncoder(nn.Module):
           # 🔹 Attention Pooling
         self.attn_pool = nn.Sequential(
             nn.Linear(emb_dim, emb_dim),
-            nn.Tanh(),
+            nn.ReLU6(),
             nn.Linear(emb_dim, 1)
         )
   
@@ -354,32 +354,6 @@ class ConvGRUCell(nn.Module):
 
 
 
-class GumbelPixelQuantizer(nn.Module):
-    def __init__(self, num_codes, tau=0.2):
-        super().__init__()
-        self.num_codes = num_codes
-        self.tau = tau
-
-    def forward(self, logits, hard=False):
-        """
-        logits: [B, K, H, W]
-        """
-        B, K, H, W = logits.shape
-        logits = logits.permute(0, 2, 3, 1)  # [B,H,W,K]
-        logits = logits.clamp(-1, 1)
-        logits = logits - logits.mean(dim=1, keepdim=True)
-
-        y = F.gumbel_softmax(
-            logits,
-            tau=self.tau,
-            hard=True,
-            dim=-1
-        )
-
-        indices = y.argmax(dim=-1)
-        y = y.permute(0, 3, 1, 2)  # [B,K,H,W]
-        return y, indices
-
 
 
 class TemporalConvGRUDecoder(nn.Module):
@@ -442,7 +416,10 @@ class TemporalConvGRUDecoder(nn.Module):
                 # 🔹 RGB
         x_base = self.out(feat_q)          # [B, 3, H, W]
         residual = self.residual_head(x_base)
-        x_t = x_base + 0.1 * residual
+        z_rgb = F.interpolate(z_q, size=x_base.shape[-2:])
+        x_t = x_base + 0.1 * residual + 0.2 * z_rgb[:, :3]
+
+
 
         return x_t, h
 
