@@ -195,7 +195,7 @@ if __name__ == "__main__":
     #initialProcess(model,valLoader,device)
     initialProcess(model,valLoader,device)
     bestModelVal = validation(model,testLoader)
-    epochVQturnOn = 1
+    epochVQturnOn = 10
     nextEpoch= 10
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
