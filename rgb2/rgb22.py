@@ -67,7 +67,7 @@ class PatchEmbedding(nn.Module):
         return x
 
 class ViTEncoder(nn.Module):
-    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=16, n_layers=3, n_heads=16):
+    def __init__(self, in_channels=3, img_size=288, patch_size=24, emb_dim=16, n_layers=3, n_heads=4):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=n_heads, batch_first=True)
