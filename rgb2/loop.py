@@ -195,7 +195,7 @@ if __name__ == "__main__":
     #initialProcess(model,valLoader,device)
     initialProcess(model,valLoader,device)
     bestModelVal = validation(model,testLoader)
-    epochVQturnOn = 30
+    epochVQturnOn = 5
     nextEpoch= 2
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
@@ -216,7 +216,7 @@ if __name__ == "__main__":
             
             # --- Forward ---
             
-            x_rec, vq_loss, indices, perplexity, used_codes,weights_all,kl_loss = model(x,epoch>epochVQturnOn)              
+            x_rec, vq_loss, indices, perplexity, used_codes,weights_all,kl_loss = model(x,epoch>=epochVQturnOn)              
             # --- Loss ---
             #recon_loss = F.mse_loss(x_rec, x)
 
@@ -232,7 +232,7 @@ if __name__ == "__main__":
                 loss_recon*10
                 + 0.1 * vq_loss
                +0.0001*L_entropy
-                +0.001*kl_loss
+                +0.01*kl_loss
             )
         
 
@@ -270,7 +270,7 @@ if __name__ == "__main__":
             })
        
             modelVal = validation(model,testLoader,)
-            if bestModelVal-modelVal>0.0000001 and epoch>epochVQturnOn:
+            if bestModelVal-modelVal>0.0000001 and epoch>=epochVQturnOn:
                 print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxUpdadtexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
                 bestModelVal=modelVal
                 torch.save(model.state_dict(), f"BestTEstModelBest.pth")
