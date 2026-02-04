@@ -199,7 +199,7 @@ if __name__ == "__main__":
     nextEpoch= 2
     for epoch in range(num_epochs):
         if epoch == epochVQturnOn:
-            model.initializeWeights(-1,5,trainLoader)
+            #model.initializeWeights(-1,5,trainLoader)
             pass
              
     
@@ -232,7 +232,7 @@ if __name__ == "__main__":
                 loss_recon*10
                 + 0.1 * vq_loss
                +0.0001*L_entropy
-                +0.01*kl_loss
+                +0.001*kl_loss
             )
         
 
