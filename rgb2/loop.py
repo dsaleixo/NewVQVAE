@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
             loss = (
                 loss_recon*10
-                + 0.1 * vq_loss
+                + 0.01 * vq_loss
                +0.0001*L_entropy
                 +0.001*kl_loss
             )
