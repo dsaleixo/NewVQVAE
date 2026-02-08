@@ -426,12 +426,13 @@ class TemporalConvGRUDecoder(nn.Module):
         self.pixel_feat = nn.Conv2d(hidden, pixel_feat_dim, 1)
 
         # 🔹 Soft-VQ
+        '''
         self.pixel_quant = SoftVectorQuantizer(
             num_embeddings=num_pixel_codes,
             embedding_dim=pixel_feat_dim,
             tau=0.2
         )
-
+        '''
         # 🔹 projeção final para RGB
         self.out = nn.Sequential(
             nn.Conv2d(pixel_feat_dim, hidden, 3, padding=1),
@@ -463,15 +464,15 @@ class TemporalConvGRUDecoder(nn.Module):
         feat = self.pixel_feat(h)
 
         # 🔹 quantização suave
-        feat_q, weights, perplexity = self.pixel_quant(feat)
+        
         # x_q: saída quantizada (Soft-VQ)
        
                 # 🔹 RGB
-        x_base = self.out(feat_q)          # [B, 3, H, W]
+        x_base = self.out(feat)          # [B, 3, H, W]
         residual = self.residual_head(x_base)
         x_t = x_base + 0.1 * residual
 
-        return x_t, h, weights, perplexity
+        return x_t, h
 
 
 
@@ -560,9 +561,8 @@ class RGB(nn.Module):
             if teacher_forcing and t > 0 and t%3==0:
                 x_prev = frames_gt[t - 1]
            
-            x_t, h, weights, px_perplexity = self.decoder(z_q, x_prev, h)
-            weights_all.append(weights.detach())
-            perplexities.append(px_perplexity.detach())
+            x_t, h = self.decoder(z_q, x_prev, h)
+           
             recons.append(x_t)
             # 🔴 TRUNCATED BPTT
             if (t + 1) % truncate_every == 0:
@@ -574,9 +574,9 @@ class RGB(nn.Module):
         # 5) junta grid e retorna
         out_grid = join_grid(recons, n_rows, n_cols)
         # q_loss é o loss da quantização (é o mesmo pois z_q é único); manter assim para compatibilidade
-        weights_all = torch.stack(weights_all, dim=1)
         
-        return out_grid, q_loss, indices, perplexity, used_codes,weights_all,kl_loss
+        
+        return out_grid, q_loss, indices, perplexity, used_codes,kl_loss
 
 
     
